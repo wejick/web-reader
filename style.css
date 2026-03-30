@@ -1,0 +1,540 @@
+/* ============================================================
+   CSS Custom Properties — light & dark theme
+   ============================================================ */
+:root {
+  --bg: #ffffff;
+  --surface: #f4f4f5;
+  --surface-hover: #e4e4e7;
+  --text: #18181b;
+  --text-muted: #71717a;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-text: #ffffff;
+  --border: #e4e4e7;
+  --shadow: rgba(0, 0, 0, 0.08);
+  --highlight: rgba(250, 204, 21, 0.45);
+  --highlight-border: rgba(234, 179, 8, 0.7);
+  --radius: 6px;
+  --toolbar-height: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #09090b;
+    --surface: #18181b;
+    --surface-hover: #27272a;
+    --text: #fafafa;
+    --text-muted: #a1a1aa;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-text: #ffffff;
+    --border: #27272a;
+    --shadow: rgba(0, 0, 0, 0.4);
+    --highlight: rgba(250, 204, 21, 0.3);
+    --highlight-border: rgba(234, 179, 8, 0.5);
+  }
+}
+
+/* ============================================================
+   Reset & Base
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--text);
+  display: grid;
+  grid-template-rows: auto 3px 1fr;
+  grid-template-columns: 1fr;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ============================================================
+   Toolbar
+   ============================================================ */
+#toolbar {
+  grid-row: 1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.6rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+#url-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+#url-input {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#url-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+#playback-controls {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+/* Spacer to push settings button to the right */
+#controls-row > #settings-btn {
+  margin-left: auto;
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  user-select: none;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.9rem;
+  padding: 0.4rem 1rem;
+}
+
+.btn-accent:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-icon {
+  padding: 0.3rem 0.5rem;
+  border: none;
+  background: transparent;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+/* Active / toggled state for reader button */
+.btn.active {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ============================================================
+   TTS Progress Bar
+   ============================================================ */
+#tts-progress-bar {
+  grid-row: 2;
+  height: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+#tts-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+/* ============================================================
+   Content Area
+   ============================================================ */
+#content-area {
+  grid-row: 3;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Web frame — fills the entire content area */
+#web-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Reader view — comfortable reading width, scrollable */
+#reader-view {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 2rem 1rem 4rem;
+  background: var(--bg);
+}
+
+#reader-view[hidden] {
+  display: none;
+}
+
+#reader-header {
+  max-width: 680px;
+  margin: 0 auto 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+#reader-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+#reader-byline {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+#reader-content {
+  max-width: 680px;
+  margin: 0 auto;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+/* Reader content typography */
+#reader-content p { margin-bottom: 1.2em; }
+#reader-content h1,
+#reader-content h2,
+#reader-content h3,
+#reader-content h4 {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 1.5em 0 0.6em;
+  line-height: 1.3;
+}
+#reader-content h2 { font-size: 1.35rem; }
+#reader-content h3 { font-size: 1.15rem; }
+#reader-content a { color: var(--accent); }
+#reader-content img { max-width: 100%; border-radius: var(--radius); margin: 1em 0; }
+#reader-content blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 1rem;
+  margin: 1em 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
+#reader-content pre, #reader-content code {
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.9em;
+  background: var(--surface);
+  border-radius: 4px;
+}
+#reader-content pre { padding: 1em; overflow-x: auto; }
+#reader-content code { padding: 0.1em 0.3em; }
+#reader-content ul, #reader-content ol { padding-left: 1.5em; margin-bottom: 1em; }
+#reader-content li { margin-bottom: 0.4em; }
+
+/* ============================================================
+   TTS Chunk Highlighting
+   ============================================================ */
+span[data-chunk] {
+  border-radius: 3px;
+  transition: background-color 0.2s ease, outline 0.2s ease;
+}
+
+span[data-chunk].speaking {
+  background-color: var(--highlight);
+  outline: 1px solid var(--highlight-border);
+}
+
+/* ============================================================
+   Empty State
+   ============================================================ */
+#empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  pointer-events: none;
+  text-align: center;
+  padding: 2rem;
+}
+
+#empty-icon {
+  font-size: 4rem;
+  line-height: 1;
+  opacity: 0.4;
+}
+
+#empty-state p {
+  font-size: 1rem;
+}
+
+#empty-state .hint {
+  font-size: 0.875rem;
+  opacity: 0.75;
+}
+
+#empty-state.hidden {
+  display: none;
+}
+
+/* ============================================================
+   Settings Panel
+   ============================================================ */
+#settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(380px, 100vw);
+  height: 100dvh;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -4px 0 24px var(--shadow);
+  z-index: 200;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  /* hidden attribute overrides display, so we use visibility trick */
+}
+
+#settings-panel:not([hidden]) {
+  /* panel is shown via .open class toggling transform */
+}
+
+#settings-panel.open {
+  transform: translateX(0);
+}
+
+#settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
+}
+
+#settings-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.settings-section {
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.settings-section h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.settings-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.field-label input,
+.field-label select {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.field-label input:focus,
+.field-label select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+#settings-actions {
+  padding: 1.25rem;
+  margin-top: auto;
+}
+
+#settings-actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ============================================================
+   Toast Notifications
+   ============================================================ */
+#toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: none;
+  max-width: min(480px, 90vw);
+  width: 100%;
+}
+
+.toast {
+  pointer-events: auto;
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: 0 4px 16px var(--shadow);
+  animation: toast-in 0.2s ease forwards;
+  text-align: center;
+  width: 100%;
+}
+
+.toast.error {
+  background: #dc2626;
+  color: #fff;
+}
+
+.toast.success {
+  background: #16a34a;
+  color: #fff;
+}
+
+.toast.info {
+  background: var(--accent);
+  color: #fff;
+}
+
+.toast.fade-out {
+  animation: toast-out 0.3s ease forwards;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(8px); }
+}
+
+/* ============================================================
+   Loading spinner state on buttons
+   ============================================================ */
+.btn.loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  color: var(--accent-text);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   Scrollbar styling (webkit)
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
