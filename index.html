@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Reader</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- Top toolbar -->
+  <header id="toolbar">
+    <div id="url-row">
+      <input id="url-input" type="url" placeholder="https://example.com/article" autocomplete="off" spellcheck="false">
+      <button id="load-btn" class="btn btn-primary">Load</button>
+    </div>
+    <div id="controls-row">
+      <button id="reader-toggle" class="btn" disabled title="Toggle reader mode">
+        <span class="icon">&#128214;</span> Reader
+      </button>
+      <div id="playback-controls">
+        <button id="play-btn" class="btn btn-accent" disabled title="Play / Pause">
+          <span id="play-icon">&#9654;</span> <span id="play-label">Play</span>
+        </button>
+        <button id="stop-btn" class="btn" disabled title="Stop">
+          <span class="icon">&#9632;</span>
+        </button>
+      </div>
+      <button id="settings-btn" class="btn" title="Settings">
+        <span class="icon">&#9881;</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- TTS progress bar -->
+  <div id="tts-progress-bar" aria-hidden="true">
+    <div id="tts-progress-fill"></div>
+  </div>
+
+  <!-- Main content area -->
+  <main id="content-area">
+    <!-- Web view: proxied page rendered in iframe -->
+    <iframe
+      id="web-frame"
+      sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+      title="Web content"
+    ></iframe>
+
+    <!-- Reader view: clean article extracted by Readability -->
+    <div id="reader-view" hidden>
+      <div id="reader-header">
+        <h1 id="reader-title"></h1>
+        <p id="reader-byline"></p>
+      </div>
+      <div id="reader-content"></div>
+    </div>
+
+    <!-- Empty state shown before any URL is loaded -->
+    <div id="empty-state">
+      <div id="empty-icon">&#128366;</div>
+      <p>Enter a URL above to get started.</p>
+      <p class="hint">Then toggle <strong>Reader Mode</strong> and press <strong>Play</strong> to listen.</p>
+    </div>
+  </main>
+
+  <!-- Settings panel (slides in from right) -->
+  <aside id="settings-panel" aria-label="Settings" hidden>
+    <div id="settings-header">
+      <h2>Settings</h2>
+      <button id="settings-close" class="btn btn-icon" title="Close settings">&#10005;</button>
+    </div>
+
+    <section class="settings-section">
+      <h3>TTS Provider</h3>
+      <label class="field-label">
+        Provider
+        <select id="tts-provider">
+          <option value="openai">OpenAI</option>
+          <option value="elevenlabs">ElevenLabs</option>
+        </select>
+      </label>
+      <label class="field-label">
+        Model
+        <select id="tts-model"></select>
+      </label>
+      <label class="field-label">
+        Voice
+        <select id="tts-voice"></select>
+      </label>
+    </section>
+
+    <section class="settings-section">
+      <h3>API Keys</h3>
+      <p class="settings-note">Keys are stored only in your browser (localStorage).</p>
+      <label class="field-label">
+        OpenAI API Key
+        <input id="openai-key" type="password" placeholder="sk-..." autocomplete="off">
+      </label>
+      <label class="field-label">
+        ElevenLabs API Key
+        <input id="elevenlabs-key" type="password" placeholder="..." autocomplete="off">
+      </label>
+    </section>
+
+    <section class="settings-section">
+      <h3>Content Fetching</h3>
+      <p class="settings-note">
+        A CORS proxy is required to fetch pages. Leave blank to use the built-in
+        dev proxy (localhost only) or enter a public proxy URL.
+      </p>
+      <label class="field-label">
+        CORS Proxy URL
+        <input id="cors-proxy" type="url" placeholder="https://corsproxy.io/?url=">
+      </label>
+    </section>
+
+    <div id="settings-actions">
+      <button id="settings-save" class="btn btn-primary">Save</button>
+    </div>
+  </aside>
+
+  <!-- Hidden audio element for TTS playback -->
+  <audio id="tts-audio" preload="auto"></audio>
+
+  <!-- Toast container -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
