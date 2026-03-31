@@ -3,6 +3,7 @@
 A client-side web application for fetching, reading, and listening to web articles using text-to-speech. Built with vanilla JavaScript and Vite.
 
 ![Web Reader Screenshot](docs/screenshot.png)
+![Web Reader Screenshot](docs/screenshot_desktop.png)
 
 ## Features
 
