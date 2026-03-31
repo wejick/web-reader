@@ -7,7 +7,18 @@ describe('fetchPage', () => {
   });
 
   it('rejects invalid URLs', async () => {
-    await expect(fetchPage('not-a-url', '')).rejects.toThrow('Invalid URL');
+    await expect(fetchPage('://bad url with spaces', '')).rejects.toThrow('Invalid URL');
+  });
+
+  it('auto-prepends https:// when no protocol is given', async () => {
+    const html = '<html><head><title>Test</title></head><body></body></html>';
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(html),
+    });
+
+    const result = await fetchPage('example.com/article', 'https://proxy.io');
+    expect(result.url).toBe('https://example.com/article');
   });
 
   it('rejects non-http protocols', async () => {

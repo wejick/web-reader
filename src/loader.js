@@ -16,6 +16,11 @@
  * @returns {Promise<{html: string, url: string, title: string}>}
  */
 export async function fetchPage(url, corsProxy) {
+  // Auto-prepend https:// if no protocol is present
+  if (url && !url.match(/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//)) {
+    url = 'https://' + url;
+  }
+
   // Validate the URL before hitting the network
   let parsed;
   try {
