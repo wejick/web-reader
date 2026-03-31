@@ -3,6 +3,7 @@
  */
 
 import { loadSettings, saveSettings, populateModelVoiceSelectors, fetchElevenLabsVoices, fetchElevenLabsModels } from './settings.js';
+import { addToHistory, getHistory, searchHistory, clearHistory } from './history.js';
 import { fetchPage } from './loader.js';
 import { parseArticle } from './reader.js';
 import { chunkText, TTSQueue } from './tts.js';
@@ -18,6 +19,8 @@ const state = {
   ttsQueue:     null,    // active TTSQueue instance
   ttsChunks:    [],      // text chunks derived from article.textContent
   settings:     loadSettings(),
+  navStack:     [],      // visited URLs for back/forward
+  navIndex:     -1,      // current position in navStack
 };
 
 // ---------------------------------------------------------------------------
@@ -25,8 +28,11 @@ const state = {
 // ---------------------------------------------------------------------------
 const $ = id => document.getElementById(id);
 
-const urlInput      = $('url-input');
-const loadBtn       = $('load-btn');
+const urlInput       = $('url-input');
+const urlSuggestions = $('url-suggestions');
+const loadBtn        = $('load-btn');
+const backBtn        = $('back-btn');
+const forwardBtn     = $('forward-btn');
 const readerToggle  = $('reader-toggle');
 const playBtn       = $('play-btn');
 const stopBtn       = $('stop-btn');
@@ -51,6 +57,110 @@ const voiceSel      = $('tts-voice');
 const openaiKeyIn   = $('openai-key');
 const elevenlabsKeyIn = $('elevenlabs-key');
 const corsProxyIn   = $('cors-proxy');
+
+// ---------------------------------------------------------------------------
+// Back / Forward navigation
+// ---------------------------------------------------------------------------
+
+function updateNavButtons() {
+  backBtn.disabled    = state.navIndex <= 0;
+  forwardBtn.disabled = state.navIndex >= state.navStack.length - 1;
+}
+
+/** Push a URL onto the nav stack (truncates forward history). */
+function pushNav(url) {
+  // Truncate anything ahead of current position
+  state.navStack.splice(state.navIndex + 1);
+  state.navStack.push(url);
+  state.navIndex = state.navStack.length - 1;
+  updateNavButtons();
+}
+
+async function navigateBack() {
+  if (state.navIndex <= 0) return;
+  state.navIndex--;
+  const url = state.navStack[state.navIndex];
+  urlInput.value = url;
+  await handleLoad({ skipPush: true });
+}
+
+async function navigateForward() {
+  if (state.navIndex >= state.navStack.length - 1) return;
+  state.navIndex++;
+  const url = state.navStack[state.navIndex];
+  urlInput.value = url;
+  await handleLoad({ skipPush: true });
+}
+
+// ---------------------------------------------------------------------------
+// URL autocomplete
+// ---------------------------------------------------------------------------
+
+let acIndex = -1;
+let acItems = [];
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderSuggestions(items) {
+  acItems = items;
+  acIndex = -1;
+  urlSuggestions.innerHTML = '';
+
+  if (!items.length) {
+    urlSuggestions.hidden = true;
+    return;
+  }
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const div = document.createElement('div');
+    div.className = 'suggestion-item';
+    div.innerHTML =
+      `<span class="suggestion-title">${escapeHtml(item.title)}</span>` +
+      `<span class="suggestion-url">${escapeHtml(item.url)}</span>`;
+    div.addEventListener('mousedown', e => {
+      e.preventDefault(); // keep focus on input
+      selectSuggestion(i);
+    });
+    urlSuggestions.appendChild(div);
+  }
+
+  urlSuggestions.hidden = false;
+}
+
+function hideSuggestions() {
+  urlSuggestions.hidden = true;
+  acItems = [];
+  acIndex = -1;
+}
+
+function setAcActive(index) {
+  urlSuggestions.querySelectorAll('.suggestion-item').forEach((el, i) => {
+    el.classList.toggle('ac-active', i === index);
+  });
+  const active = urlSuggestions.querySelector('.ac-active');
+  if (active) active.scrollIntoView({ block: 'nearest' });
+}
+
+function selectSuggestion(index) {
+  const item = acItems[index];
+  if (!item) return;
+  urlInput.value = item.url;
+  hideSuggestions();
+  handleLoad();
+}
+
+function updateSuggestions() {
+  const q = urlInput.value.trim();
+  if (!q) {
+    const recent = getHistory().slice(0, 8);
+    renderSuggestions(recent);
+  } else {
+    renderSuggestions(searchHistory(q).slice(0, 8));
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Toast notifications
@@ -174,7 +284,7 @@ function injectLinkIntercept(html) {
 // Page loader
 // ---------------------------------------------------------------------------
 
-async function handleLoad() {
+async function handleLoad({ skipPush = false } = {}) {
   const url = urlInput.value.trim();
   if (!url) {
     showToast('Please enter a URL.', 'error');
@@ -210,8 +320,10 @@ async function handleLoad() {
     webFrame.hidden = false;
     readerView.hidden = true;
 
-    // Update document title
+    // Update document title and save to history
     if (title) document.title = `${title} — Web Reader`;
+    addToHistory(url, title || url);
+    if (!skipPush) pushNav(url);
 
     // Enable controls
     readerToggle.disabled = false;
@@ -468,9 +580,39 @@ function handleSettingsSave() {
 // Event wiring
 // ---------------------------------------------------------------------------
 
-// Load button + Enter key in URL input
+// Load button + URL input interactions
 loadBtn.addEventListener('click', handleLoad);
+backBtn.addEventListener('click', navigateBack);
+forwardBtn.addEventListener('click', navigateForward);
+
+urlInput.addEventListener('focus', updateSuggestions);
+urlInput.addEventListener('input', updateSuggestions);
+urlInput.addEventListener('blur', () => setTimeout(hideSuggestions, 150));
+
 urlInput.addEventListener('keydown', e => {
+  if (!urlSuggestions.hidden) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      acIndex = Math.min(acIndex + 1, acItems.length - 1);
+      setAcActive(acIndex);
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      acIndex = Math.max(acIndex - 1, -1);
+      setAcActive(acIndex);
+      return;
+    }
+    if (e.key === 'Enter' && acIndex >= 0) {
+      e.preventDefault();
+      selectSuggestion(acIndex);
+      return;
+    }
+    if (e.key === 'Escape') {
+      hideSuggestions();
+      return;
+    }
+  }
   if (e.key === 'Enter') handleLoad();
 });
 
@@ -485,6 +627,10 @@ stopBtn.addEventListener('click', stopTTS);
 settingsBtn.addEventListener('click', openSettings);
 settingsClose.addEventListener('click', closeSettings);
 settingsSave.addEventListener('click', handleSettingsSave);
+$('clear-history-btn').addEventListener('click', () => {
+  clearHistory();
+  showToast('Browsing history cleared.', 'success', 2500);
+});
 
 // Provider change → update model/voice dropdowns; auto-fetch ElevenLabs options
 providerSel.addEventListener('change', () => {

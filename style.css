@@ -78,6 +78,12 @@ body {
   gap: 0.5rem;
 }
 
+#url-input-wrap {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+}
+
 #controls-row {
   display: flex;
   align-items: center;
@@ -86,8 +92,7 @@ body {
 }
 
 #url-input {
-  flex: 1 1 0;
-  min-width: 0;
+  width: 100%;
   padding: 0.45rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -165,6 +170,16 @@ body {
 .btn-accent:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
+}
+
+.btn-danger {
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  color: #fff;
 }
 
 .btn-icon {
@@ -530,6 +545,58 @@ body {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   URL Autocomplete Suggestions
+   ============================================================ */
+#url-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px var(--shadow);
+  z-index: 100;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+#url-suggestions[hidden] { display: none; }
+
+.suggestion-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+
+.suggestion-item:last-child { border-bottom: none; }
+
+.suggestion-item:hover,
+.suggestion-item.ac-active {
+  background: var(--surface-hover);
+}
+
+.suggestion-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestion-url {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ============================================================
