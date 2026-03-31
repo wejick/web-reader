@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Web Reader</title>
   <link rel="stylesheet" href="/style.css">
-  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1a1a1a">
-  <link rel="apple-touch-icon" href="/icons/icon.svg">
 </head>
 <body>
 
@@ -149,10 +147,5 @@
   <div id="toast-container" aria-live="polite"></div>
 
   <script type="module" src="/src/main.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
-    }
-  </script>
 </body>
 </html>
