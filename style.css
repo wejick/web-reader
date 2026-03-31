@@ -364,7 +364,7 @@ body {
 #reader-content h2 { font-size: 1.35rem; }
 #reader-content h3 { font-size: 1.15rem; }
 #reader-content a { color: var(--accent); }
-#reader-content img { max-width: 100%; border-radius: var(--radius); margin: 1em 0; }
+#reader-content img { max-width: 100%; width: auto; max-height: 480px; height: auto; object-fit: contain; border-radius: var(--radius); margin: 1em auto; display: block; }
 #reader-content blockquote {
   border-left: 3px solid var(--accent);
   padding-left: 1rem;
