@@ -14,7 +14,7 @@ describe('settings', () => {
       expect(s.voice).toBe('alloy');
       expect(s.openaiKey).toBe('');
       expect(s.elevenlabsKey).toBe('');
-      expect(s.corsProxy).toBe('https://corsproxy.io/?url=');
+      expect(s.corsProxy).toBe('https://corsbeater.wejick.workers.dev');
     });
 
     it('merges saved settings with defaults', () => {

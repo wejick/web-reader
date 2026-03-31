@@ -21,10 +21,10 @@ describe('fetchPage', () => {
       text: () => Promise.resolve(html),
     });
 
-    const result = await fetchPage('https://example.com/article', 'https://proxy.io/?url=');
+    const result = await fetchPage('https://example.com/article', 'https://proxy.io');
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('https://proxy.io/?url='),
+      expect.stringContaining('https://proxy.io?url='),
       expect.any(Object),
     );
     expect(result.url).toBe('https://example.com/article');
@@ -53,13 +53,13 @@ describe('fetchPage', () => {
       statusText: 'Not Found',
     });
 
-    await expect(fetchPage('https://example.com', 'https://proxy.io/?url=')).rejects.toThrow('HTTP 404');
+    await expect(fetchPage('https://example.com', 'https://proxy.io')).rejects.toThrow('HTTP 404');
   });
 
   it('throws on network error', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
 
-    await expect(fetchPage('https://example.com', 'https://proxy.io/?url=')).rejects.toThrow('Network error');
+    await expect(fetchPage('https://example.com', 'https://proxy.io')).rejects.toThrow('Network error');
   });
 
   it('rewrites relative URLs to absolute', async () => {
@@ -69,7 +69,7 @@ describe('fetchPage', () => {
       text: () => Promise.resolve(html),
     });
 
-    const result = await fetchPage('https://example.com/article', 'https://proxy.io/?url=');
+    const result = await fetchPage('https://example.com/article', 'https://proxy.io');
     expect(result.html).toContain('https://example.com/img/photo.jpg');
     expect(result.html).toContain('https://example.com/page');
   });
@@ -81,7 +81,7 @@ describe('fetchPage', () => {
       text: () => Promise.resolve(html),
     });
 
-    const result = await fetchPage('https://example.com', 'https://proxy.io/?url=');
+    const result = await fetchPage('https://example.com', 'https://proxy.io');
     expect(result.title).toBe('My Article Title');
   });
 });

@@ -51,7 +51,7 @@ const DEFAULTS = {
   voice: 'alloy',
   openaiKey: '',
   elevenlabsKey: '',
-  corsProxy: 'https://corsproxy.io/?url=',
+  corsProxy: 'https://corsbeater.wejick.workers.dev',
 };
 
 /** Load settings from localStorage, merging with defaults. */

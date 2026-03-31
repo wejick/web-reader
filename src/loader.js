@@ -4,14 +4,14 @@
  * Since browsers cannot fetch arbitrary URLs due to CORS restrictions, all
  * requests are routed through a configurable CORS proxy. In development the
  * Vite dev server provides /dev-proxy; in production the user configures a
- * public or self-hosted proxy (e.g. corsproxy.io).
+ * public or self-hosted proxy (e.g. https://corsbeater.wejick.workers.dev).
  */
 
 /**
  * Fetch a page and return its HTML with all relative URLs resolved to absolute.
  *
  * @param {string} url        - The original page URL.
- * @param {string} corsProxy  - The CORS proxy prefix (e.g. "https://corsproxy.io/?url=").
+ * @param {string} corsProxy  - The CORS proxy base URL (e.g. "https://corsbeater.wejick.workers.dev").
  *                              Pass empty string / null to use the Vite dev proxy.
  * @returns {Promise<{html: string, url: string, title: string}>}
  */
@@ -63,7 +63,7 @@ export async function fetchPage(url, corsProxy) {
  */
 function buildProxyUrl(url, corsProxy) {
   if (corsProxy) {
-    return corsProxy + encodeURIComponent(url);
+    return `${corsProxy}?url=${encodeURIComponent(url)}`;
   }
   // Vite dev proxy — defined in vite.config.js
   return `/dev-proxy?url=${encodeURIComponent(url)}`;
