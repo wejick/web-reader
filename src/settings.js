@@ -25,10 +25,8 @@ const PROVIDER_OPTIONS = {
   },
   elevenlabs: {
     models: [
-      { value: 'eleven_monolingual_v1',  label: 'Monolingual v1' },
       { value: 'eleven_multilingual_v2', label: 'Multilingual v2' },
-      { value: 'eleven_turbo_v2',        label: 'Turbo v2 (fast)' },
-      { value: 'eleven_turbo_v2_5',      label: 'Turbo v2.5 (fast)' },
+      { value: 'eleven_flash_v2_5',      label: 'Flash v2.5 (fast, free tier)' },
     ],
     // Common ElevenLabs pre-made voices (ID → display name)
     voices: [
@@ -75,6 +73,40 @@ export function saveSettings(settings) {
 /** Return model and voice options for a given provider. */
 export function getProviderOptions(provider) {
   return PROVIDER_OPTIONS[provider] ?? PROVIDER_OPTIONS.openai;
+}
+
+/**
+ * Fetch available voices from the ElevenLabs API for this account.
+ * Returns an array of { value, label } options.
+ * @param {string} apiKey
+ * @returns {Promise<Array<{value: string, label: string}>>}
+ */
+export async function fetchElevenLabsVoices(apiKey) {
+  const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+    headers: { 'xi-api-key': apiKey },
+  });
+  if (!res.ok) throw new Error(`ElevenLabs API error: HTTP ${res.status}`);
+  const data = await res.json();
+  return data.voices
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(v => ({ value: v.voice_id, label: v.name }));
+}
+
+/**
+ * Fetch available TTS models from the ElevenLabs API.
+ * Returns an array of { value, label } options.
+ * @param {string} apiKey
+ * @returns {Promise<Array<{value: string, label: string}>>}
+ */
+export async function fetchElevenLabsModels(apiKey) {
+  const res = await fetch('https://api.elevenlabs.io/v1/models', {
+    headers: { 'xi-api-key': apiKey },
+  });
+  if (!res.ok) throw new Error(`ElevenLabs API error: HTTP ${res.status}`);
+  const data = await res.json();
+  return data
+    .filter(m => m.can_do_text_to_speech)
+    .map(m => ({ value: m.model_id, label: m.name }));
 }
 
 /** Populate the model and voice <select> elements for a given provider. */

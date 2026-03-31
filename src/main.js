@@ -2,7 +2,7 @@
  * main.js — App entry point. Wires together settings, loader, reader, and TTS.
  */
 
-import { loadSettings, saveSettings, populateModelVoiceSelectors } from './settings.js';
+import { loadSettings, saveSettings, populateModelVoiceSelectors, fetchElevenLabsVoices, fetchElevenLabsModels } from './settings.js';
 import { fetchPage } from './loader.js';
 import { parseArticle } from './reader.js';
 import { chunkText, TTSQueue } from './tts.js';
@@ -388,6 +388,51 @@ function openSettings() {
   settingsPanel.hidden = false;
   // Trigger CSS transition on next frame
   requestAnimationFrame(() => settingsPanel.classList.add('open'));
+
+  // Auto-fetch ElevenLabs voices and models if key is available
+  if (state.settings.provider === 'elevenlabs' && state.settings.elevenlabsKey) {
+    loadElevenLabsOptions(state.settings.elevenlabsKey);
+  }
+}
+
+async function loadElevenLabsOptions(apiKey) {
+  try {
+    const [voices, models] = await Promise.all([
+      fetchElevenLabsVoices(apiKey),
+      fetchElevenLabsModels(apiKey),
+    ]);
+
+    if (models.length) {
+      modelSel.innerHTML = '';
+      for (const m of models) {
+        const opt = document.createElement('option');
+        opt.value = m.value;
+        opt.textContent = m.label;
+        if (m.value === state.settings.model) opt.selected = true;
+        modelSel.appendChild(opt);
+      }
+      if (!modelSel.value) modelSel.selectedIndex = 0;
+    }
+
+    if (voices.length) {
+      voiceSel.innerHTML = '';
+      for (const v of voices) {
+        const opt = document.createElement('option');
+        opt.value = v.value;
+        opt.textContent = v.label;
+        if (v.value === state.settings.voice) opt.selected = true;
+        voiceSel.appendChild(opt);
+      }
+      if (!voiceSel.value) voiceSel.selectedIndex = 0;
+    }
+
+    // Persist the resolved model/voice back to settings
+    state.settings.model = modelSel.value;
+    state.settings.voice = voiceSel.value;
+    saveSettings(state.settings);
+  } catch (err) {
+    showToast(`Could not load ElevenLabs options: ${err.message}`, 'error');
+  }
 }
 
 function closeSettings() {
@@ -441,7 +486,7 @@ settingsBtn.addEventListener('click', openSettings);
 settingsClose.addEventListener('click', closeSettings);
 settingsSave.addEventListener('click', handleSettingsSave);
 
-// Provider change → update model/voice dropdowns
+// Provider change → update model/voice dropdowns; auto-fetch ElevenLabs options
 providerSel.addEventListener('change', () => {
   populateModelVoiceSelectors(
     providerSel.value,
@@ -450,6 +495,9 @@ providerSel.addEventListener('change', () => {
     state.settings.model,
     state.settings.voice,
   );
+  if (providerSel.value === 'elevenlabs' && elevenlabsKeyIn.value.trim()) {
+    loadElevenLabsOptions(elevenlabsKeyIn.value.trim());
+  }
 });
 
 // Close settings panel when clicking outside of it
