@@ -726,7 +726,7 @@ readerToggle.addEventListener('click', toggleReaderMode);
 
 // Playback controls
 playBtn.addEventListener('click', handlePlayPause);
-// stopBtn.addEventListener('click', stopTTS);
+stopBtn.addEventListener('click', stopTTS);
 prevBtn.addEventListener('click', () => seekChunk(-1));
 nextBtn.addEventListener('click', () => seekChunk(+1));
 
