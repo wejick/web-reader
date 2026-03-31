@@ -218,6 +218,10 @@ body {
   display: block;
 }
 
+#web-frame[hidden] {
+  display: none;
+}
+
 /* Reader view — comfortable reading width, scrollable */
 #reader-view {
   width: 100%;
