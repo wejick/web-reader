@@ -64,13 +64,17 @@ export async function fetchPage(url, corsProxy) {
 
 /**
  * Build the proxied request URL.
- * In dev mode (no corsProxy set) we use the Vite /dev-proxy route.
+ * In dev mode (Vite local server) always use the built-in /dev-proxy route.
+ * In production use the user-configured CORS proxy.
  */
 function buildProxyUrl(url, corsProxy) {
+  if (import.meta.env.MODE === 'development') {
+    // Vite dev proxy — defined in vite.config.js
+    return `/dev-proxy?url=${encodeURIComponent(url)}`;
+  }
   if (corsProxy) {
     return `${corsProxy}?url=${encodeURIComponent(url)}`;
   }
-  // Vite dev proxy — defined in vite.config.js
   return `/dev-proxy?url=${encodeURIComponent(url)}`;
 }
 

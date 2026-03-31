@@ -8,36 +8,34 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
   },
-  server: {
-    proxy: {
-      // Dev proxy: /dev-proxy?url=<encoded-url> → fetches the target URL
-      // bypassing CORS. Used automatically in dev mode; production uses the
-      // configurable public CORS proxy set in Settings.
-      '/dev-proxy': {
-        target: 'http://placeholder', // overridden by router below
-        changeOrigin: true,
-        configure(proxy) {
-          proxy.on('proxyReq', (proxyReq, req) => {
-            // Extract the target URL from the query string
-            const parsedUrl = new URL(req.url, 'http://localhost');
-            const targetUrl = parsedUrl.searchParams.get('url');
-            if (targetUrl) {
-              const target = new URL(targetUrl);
-              proxyReq.host = target.host;
-              proxyReq.path = target.pathname + target.search;
-            }
-          });
-        },
-        router(req) {
+  plugins: [
+    {
+      name: 'dev-cors-proxy',
+      configureServer(server) {
+        // Dev proxy: /dev-proxy?url=<encoded-url> → fetches the target URL
+        // bypassing CORS. Used automatically in dev mode; production uses the
+        // configurable public CORS proxy set in Settings.
+        server.middlewares.use('/dev-proxy', async (req, res) => {
           const parsedUrl = new URL(req.url, 'http://localhost');
           const targetUrl = parsedUrl.searchParams.get('url');
-          if (targetUrl) {
-            const target = new URL(targetUrl);
-            return `${target.protocol}//${target.host}`;
+          if (!targetUrl) {
+            res.statusCode = 400;
+            res.end('Missing url parameter');
+            return;
           }
-          return 'http://localhost';
-        },
+          try {
+            const response = await fetch(targetUrl);
+            res.statusCode = response.status;
+            const contentType = response.headers.get('content-type');
+            if (contentType) res.setHeader('content-type', contentType);
+            const body = await response.arrayBuffer();
+            res.end(Buffer.from(body));
+          } catch (err) {
+            res.statusCode = 502;
+            res.end(`Proxy error: ${err.message}`);
+          }
+        });
       },
     },
-  },
+  ],
 });
