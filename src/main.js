@@ -89,65 +89,53 @@ function resetProgress() {
 // ---------------------------------------------------------------------------
 
 function buildHighlightedDOM(chunks) {
-  // Clear existing content
-  readerContent.innerHTML = '';
-
-  // We need to map chunks (plain text) back into the article HTML.
-  // Strategy: inject the article HTML, then overlay span wrappers on the
-  // text nodes by matching chunk text sequentially.
-  //
-  // Simpler & reliable approach: render the article content as-is, then
-  // append a separate "TTS track" layer with highlighted spans below.
-  // For best UX, we replace the reader content with a version where each
-  // chunk is wrapped in a <span data-chunk="N">.
-
-  // Parse the article HTML and rebuild it with spans around each chunk.
-  // We insert the article HTML first, then walk text nodes.
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = state.article.content;
-
-  // Collect all text nodes in document order
-  const textNodes = [];
-  const walker = document.createTreeWalker(wrapper, NodeFilter.SHOW_TEXT);
-  let node;
-  while ((node = walker.nextNode())) {
-    if (node.textContent.trim()) textNodes.push(node);
-  }
-
-  // Join all text node content to build a searchable plain-text map
-  let fullText = textNodes.map(n => n.textContent).join('');
-  let searchOffset = 0;
-
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    // Find chunk in full text from current offset
-    const pos = fullText.indexOf(chunk.slice(0, 30), searchOffset);
-    if (pos === -1) continue;
-    searchOffset = pos + chunk.length;
-  }
-
-  // Fallback: just wrap chunks as paragraph spans below the article HTML
-  // This avoids complex DOM surgery while still providing highlight + scroll.
   readerContent.innerHTML = state.article.content;
 
-  // Append a hidden TTS track that mirrors the chunks
-  const ttsTrack = document.createElement('div');
-  ttsTrack.id = 'tts-track';
-  ttsTrack.style.cssText = 'margin-top: 2em; padding-top: 1em; border-top: 1px solid var(--border);';
-
-  const trackLabel = document.createElement('p');
-  trackLabel.style.cssText = 'font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75em; font-family: sans-serif;';
-  trackLabel.textContent = 'TTS reading progress:';
-  ttsTrack.appendChild(trackLabel);
-
-  chunks.forEach((chunk, i) => {
-    const span = document.createElement('span');
-    span.dataset.chunk = i;
-    span.textContent = chunk + ' ';
-    ttsTrack.appendChild(span);
+  // Remove empty block elements that add visual noise
+  readerContent.querySelectorAll('p, div').forEach(el => {
+    if (!el.textContent.trim() && !el.querySelector('img, figure, video, iframe')) {
+      el.remove();
+    }
   });
 
-  readerContent.appendChild(ttsTrack);
+  if (!chunks.length) return;
+
+  // Collect block-level elements that have text content
+  const blocks = Array.from(
+    readerContent.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote, td, th')
+  ).filter(el => el.textContent.trim());
+
+  if (!blocks.length) return;
+
+  // Build flat text from blocks and record each block's start offset
+  const blockOffsets = [];
+  let flatText = '';
+  for (const block of blocks) {
+    blockOffsets.push(flatText.length);
+    flatText += block.textContent;
+  }
+
+  // For each chunk, find its start in the flat text and assign data-chunk
+  // to the block element that contains that position.
+  let searchFrom = 0;
+  for (let i = 0; i < chunks.length; i++) {
+    const needle = chunks[i].slice(0, 50).trim();
+    const found = flatText.indexOf(needle, searchFrom);
+    if (found === -1) continue;
+
+    // Find the block that contains this position
+    let blockIdx = 0;
+    for (let j = blockOffsets.length - 1; j >= 0; j--) {
+      if (blockOffsets[j] <= found) { blockIdx = j; break; }
+    }
+
+    // Only assign if not already tagged (first chunk in a block wins)
+    if (!blocks[blockIdx].dataset.chunk) {
+      blocks[blockIdx].dataset.chunk = i;
+    }
+
+    searchFrom = found + chunks[i].length;
+  }
 }
 
 function highlightChunk(index) {
@@ -269,11 +257,7 @@ async function toggleReaderMode() {
 
     // Chunk and build highlighted DOM
     state.ttsChunks = chunkText(state.article.textContent);
-    if (state.ttsChunks.length > 0) {
-      buildHighlightedDOM(state.ttsChunks);
-    } else {
-      readerContent.innerHTML = state.article.content;
-    }
+    buildHighlightedDOM(state.ttsChunks);
 
     webFrame.hidden   = true;
     readerView.hidden = false;
