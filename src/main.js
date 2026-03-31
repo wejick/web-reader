@@ -200,7 +200,45 @@ function resetProgress() {
 // Chunk highlight
 // ---------------------------------------------------------------------------
 
-function buildHighlightedDOM(chunks) {
+/**
+ * Wrap the text content of a simple (no-HTML) element with data-chunk spans.
+ * Text is whitespace-normalized to match how chunkText processed it.
+ */
+function wrapSimpleTextWithChunks(element, chunks, startIndex) {
+  if (!chunks.length) return;
+  const text = element.textContent.replace(/\s+/g, ' ').trim();
+  if (!text) return;
+
+  const fragment = document.createDocumentFragment();
+  let pos = 0;
+
+  for (let i = 0; i < chunks.length; i++) {
+    const found = text.indexOf(chunks[i], pos);
+    if (found === -1) continue;
+
+    if (found > pos) {
+      fragment.appendChild(document.createTextNode(text.slice(pos, found)));
+    }
+
+    const span = document.createElement('span');
+    span.dataset.chunk = startIndex + i;
+    span.textContent = chunks[i];
+    fragment.appendChild(span);
+
+    pos = found + chunks[i].length;
+  }
+
+  if (pos < text.length) {
+    fragment.appendChild(document.createTextNode(text.slice(pos)));
+  }
+
+  element.textContent = '';
+  element.appendChild(fragment);
+}
+
+function buildHighlightedDOM(chunks, titleCount = 0, bylineCount = 0) {
+  const contentOffset = titleCount + bylineCount;
+
   readerContent.innerHTML = state.article.content;
 
   // Remove empty block elements that add visual noise
@@ -212,6 +250,18 @@ function buildHighlightedDOM(chunks) {
 
   if (!chunks.length) return;
 
+  // Wrap header element text with chunk spans
+  if (titleCount > 0) {
+    wrapSimpleTextWithChunks(readerTitle, chunks.slice(0, titleCount), 0);
+  }
+  if (bylineCount > 0) {
+    wrapSimpleTextWithChunks(readerByline, chunks.slice(titleCount, contentOffset), titleCount);
+  }
+
+  // Wrap content chunks — indices are offset by contentOffset
+  const contentChunks = chunks.slice(contentOffset);
+  if (!contentChunks.length) return;
+
   // Snapshot all text nodes and their positions in the flat text
   const walker = document.createTreeWalker(readerContent, NodeFilter.SHOW_TEXT);
   const snapshot = [];
@@ -222,15 +272,39 @@ function buildHighlightedDOM(chunks) {
     flatText += node.textContent;
   }
 
-  // Find each chunk's position in the flat text
+  // Build a whitespace-normalized version of flatText (matching chunkText's \s+ → ' ')
+  // and a forward map: normToOrig[normIdx] = origIdx in flatText.
+  // This allows needle matching in normalized space while preserving original positions
+  // for text-node splitting (avoiding mismatches on \n vs ' ' across node boundaries).
+  const normToOrig = [];
+  let normFlatText = '';
+  let prevWasSpace = false;
+  for (let i = 0; i < flatText.length; i++) {
+    if (/\s/.test(flatText[i])) {
+      if (!prevWasSpace) {
+        normToOrig.push(i);
+        normFlatText += ' ';
+      }
+      prevWasSpace = true;
+    } else {
+      normToOrig.push(i);
+      normFlatText += flatText[i];
+      prevWasSpace = false;
+    }
+  }
+
+  // Find each chunk's position in normalized flat text, map back to original positions
   const chunkRanges = [];
   let searchFrom = 0;
-  for (let i = 0; i < chunks.length; i++) {
-    const needle = chunks[i].slice(0, 50).trim();
-    const found = flatText.indexOf(needle, searchFrom);
-    if (found === -1) continue;
-    chunkRanges.push({ start: found, end: found + chunks[i].length, index: i });
-    searchFrom = found + chunks[i].length;
+  for (let i = 0; i < contentChunks.length; i++) {
+    const needle = contentChunks[i].slice(0, 50).trim();
+    const normFound = normFlatText.indexOf(needle, searchFrom);
+    if (normFound === -1) continue;
+    const origStart = normToOrig[normFound];
+    const normEnd = normFound + contentChunks[i].length;
+    const origEnd = normEnd < normToOrig.length ? normToOrig[normEnd] : flatText.length;
+    chunkRanges.push({ start: origStart, end: origEnd, index: contentOffset + i });
+    searchFrom = normFound + contentChunks[i].length;
   }
 
   if (!chunkRanges.length) return;
@@ -274,10 +348,10 @@ function buildHighlightedDOM(chunks) {
 
 function highlightChunk(index) {
   // Remove previous highlight
-  readerContent.querySelectorAll('[data-chunk].speaking')
+  readerView.querySelectorAll('[data-chunk].speaking')
     .forEach(el => el.classList.remove('speaking'));
 
-  const els = readerContent.querySelectorAll(`[data-chunk="${index}"]`);
+  const els = readerView.querySelectorAll(`[data-chunk="${index}"]`);
   if (!els.length) return;
 
   els.forEach(el => el.classList.add('speaking'));
@@ -285,7 +359,7 @@ function highlightChunk(index) {
 }
 
 function clearHighlight() {
-  readerContent.querySelectorAll('[data-chunk].speaking')
+  readerView.querySelectorAll('[data-chunk].speaking')
     .forEach(el => el.classList.remove('speaking'));
 }
 
@@ -391,9 +465,13 @@ async function toggleReaderMode() {
     readerTitle.textContent  = state.article.title;
     readerByline.textContent = state.article.byline || state.article.siteName || '';
 
-    // Chunk and build highlighted DOM
-    state.ttsChunks = chunkText(state.article.textContent, state.settings.chunkMaxLen);
-    buildHighlightedDOM(state.ttsChunks);
+    // Chunk each section independently so header and content are never mixed
+    const titleChunks  = chunkText(state.article.title, state.settings.chunkMaxLen);
+    const bylineText   = state.article.byline || state.article.siteName || '';
+    const bylineChunks = bylineText ? chunkText(bylineText, state.settings.chunkMaxLen) : [];
+    const bodyChunks   = chunkText(state.article.textContent, state.settings.chunkMaxLen);
+    state.ttsChunks = [...titleChunks, ...bylineChunks, ...bodyChunks];
+    buildHighlightedDOM(state.ttsChunks, titleChunks.length, bylineChunks.length);
 
     webFrame.hidden   = true;
     readerView.hidden = false;
