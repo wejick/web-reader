@@ -36,16 +36,27 @@ describe('chunkText', () => {
     }
   });
 
-  it('hard-splits a very long sentence that exceeds maxLen', () => {
+  it('force-includes a sentence with no clause boundaries even if it exceeds maxLen', () => {
+    // No sentence-ending punctuation and no clause boundaries — the whole
+    // thing is one sentence that must be force-included.
     const longWord = 'a'.repeat(50);
     const text = `${longWord} ${longWord} ${longWord} ${longWord}`;
     const maxLen = 80;
     const result = chunkText(text, maxLen);
+    // Single forced chunk containing all content
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBe(text.replace(/\s+/g, ' ').trim());
+  });
+
+  it('cuts a long sentence at a clause boundary when it exceeds maxLen', () => {
+    // Three semicolon-separated clauses each under maxLen
+    const text = 'First part; second part; third bit.';
+    const maxLen = 20;
+    const result = chunkText(text, maxLen);
+    expect(result.length).toBeGreaterThan(1);
     for (const chunk of result) {
       expect(chunk.length).toBeLessThanOrEqual(maxLen);
     }
-    // All content preserved
-    expect(result.join(' ')).toBe(text.replace(/\s+/g, ' ').trim());
   });
 
   it('normalises whitespace', () => {
@@ -60,13 +71,13 @@ describe('chunkText', () => {
     expect(result.length).toBeGreaterThan(1);
   });
 
-  it('uses default maxLen of 900', () => {
-    const sentence = 'Word '.repeat(100) + '.'; // ~500 chars
-    const text = sentence + ' ' + sentence; // ~1000 chars
+  it('uses default maxLen of 300', () => {
+    const sentence = 'Word '.repeat(40) + '.'; // ~200 chars
+    const text = sentence + ' ' + sentence + ' ' + sentence; // ~600 chars
     const result = chunkText(text);
     expect(result.length).toBeGreaterThanOrEqual(2);
     for (const chunk of result) {
-      expect(chunk.length).toBeLessThanOrEqual(900);
+      expect(chunk.length).toBeLessThanOrEqual(300);
     }
   });
 });

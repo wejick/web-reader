@@ -19,28 +19,7 @@
       </div>
       <button id="load-btn" class="btn btn-primary">Load</button>
     </div>
-    <div id="controls-row">
-      <button id="reader-toggle" class="btn" disabled title="Toggle reader mode">
-        <span class="icon">&#128214;</span> Reader
-      </button>
-      <div id="playback-controls">
-        <button id="play-btn" class="btn btn-accent" disabled title="Play / Pause">
-          <span id="play-icon">&#9654;</span> <span id="play-label">Play</span>
-        </button>
-        <button id="stop-btn" class="btn" disabled title="Stop">
-          <span class="icon">&#9632;</span>
-        </button>
-      </div>
-      <button id="settings-btn" class="btn" title="Settings">
-        <span class="icon">&#9881;</span>
-      </button>
-    </div>
   </header>
-
-  <!-- TTS progress bar -->
-  <div id="tts-progress-bar" aria-hidden="true">
-    <div id="tts-progress-fill"></div>
-  </div>
 
   <!-- Main content area -->
   <main id="content-area">
@@ -128,6 +107,37 @@
       <button id="settings-save" class="btn btn-primary">Save</button>
     </div>
   </aside>
+
+  <!-- Bottom player bar -->
+  <div id="player-bar">
+    <div id="tts-progress-bar" aria-hidden="true">
+      <div id="tts-progress-fill"></div>
+    </div>
+    <div id="player-controls">
+      <div id="playback-controls">
+        <button id="stop-btn" class="btn player-btn" disabled title="Stop">
+          <span class="icon">&#9632;</span>
+        </button>
+        <button id="prev-btn" class="btn player-btn" disabled title="Previous chunk">
+          <span class="icon">&#9664;&#9664;</span>
+        </button>
+        <button id="play-btn" class="btn player-btn-play" disabled title="Play / Pause">
+          <span id="play-icon">&#9654;</span>
+        </button>
+        <button id="next-btn" class="btn player-btn" disabled title="Next chunk">
+          <span class="icon">&#9654;&#9654;</span>
+        </button>
+      </div>
+      <button id="settings-btn" class="btn player-btn" title="Settings">
+        <span class="icon">&#9881;</span>
+        <span class="player-btn-label">Settings</span>
+      </button>
+      <button id="reader-toggle" class="btn player-btn" disabled title="Toggle reader mode">
+        <span class="icon">&#128214;</span>
+        <span class="player-btn-label">Reader</span>
+      </button>
+    </div>
+  </div>
 
   <!-- Hidden audio element for TTS playback -->
   <audio id="tts-audio" preload="auto"></audio>

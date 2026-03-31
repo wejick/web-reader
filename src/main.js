@@ -36,6 +36,8 @@ const forwardBtn     = $('forward-btn');
 const readerToggle  = $('reader-toggle');
 const playBtn       = $('play-btn');
 const stopBtn       = $('stop-btn');
+const prevBtn       = $('prev-btn');
+const nextBtn       = $('next-btn');
 const settingsBtn   = $('settings-btn');
 const settingsPanel = $('settings-panel');
 const settingsClose = $('settings-close');
@@ -210,54 +212,76 @@ function buildHighlightedDOM(chunks) {
 
   if (!chunks.length) return;
 
-  // Collect block-level elements that have text content
-  const blocks = Array.from(
-    readerContent.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote, td, th')
-  ).filter(el => el.textContent.trim());
-
-  if (!blocks.length) return;
-
-  // Build flat text from blocks and record each block's start offset
-  const blockOffsets = [];
+  // Snapshot all text nodes and their positions in the flat text
+  const walker = document.createTreeWalker(readerContent, NodeFilter.SHOW_TEXT);
+  const snapshot = [];
   let flatText = '';
-  for (const block of blocks) {
-    blockOffsets.push(flatText.length);
-    flatText += block.textContent;
+  let node;
+  while ((node = walker.nextNode())) {
+    snapshot.push({ node, start: flatText.length, text: node.textContent });
+    flatText += node.textContent;
   }
 
-  // For each chunk, find its start in the flat text and assign data-chunk
-  // to the block element that contains that position.
+  // Find each chunk's position in the flat text
+  const chunkRanges = [];
   let searchFrom = 0;
   for (let i = 0; i < chunks.length; i++) {
     const needle = chunks[i].slice(0, 50).trim();
     const found = flatText.indexOf(needle, searchFrom);
     if (found === -1) continue;
-
-    // Find the block that contains this position
-    let blockIdx = 0;
-    for (let j = blockOffsets.length - 1; j >= 0; j--) {
-      if (blockOffsets[j] <= found) { blockIdx = j; break; }
-    }
-
-    // Only assign if not already tagged (first chunk in a block wins)
-    if (!blocks[blockIdx].dataset.chunk) {
-      blocks[blockIdx].dataset.chunk = i;
-    }
-
+    chunkRanges.push({ start: found, end: found + chunks[i].length, index: i });
     searchFrom = found + chunks[i].length;
+  }
+
+  if (!chunkRanges.length) return;
+
+  // For each text node, split at chunk boundaries and wrap chunk portions in spans
+  for (const { node: textNode, start: nodeStart, text } of snapshot) {
+    const nodeEnd = nodeStart + text.length;
+    const overlapping = chunkRanges.filter(r => r.start < nodeEnd && r.end > nodeStart);
+    if (!overlapping.length) continue;
+
+    const segments = [];
+    let pos = 0;
+    for (const range of overlapping) {
+      const localStart = Math.max(0, range.start - nodeStart);
+      const localEnd   = Math.min(text.length, range.end - nodeStart);
+      if (localStart > pos) segments.push({ localStart: pos, localEnd: localStart, chunkIndex: null });
+      segments.push({ localStart, localEnd, chunkIndex: range.index });
+      pos = localEnd;
+    }
+    if (pos < text.length) segments.push({ localStart: pos, localEnd: text.length, chunkIndex: null });
+
+    const parent = textNode.parentNode;
+    if (!parent) continue;
+
+    const fragment = document.createDocumentFragment();
+    for (const seg of segments) {
+      const segText = text.slice(seg.localStart, seg.localEnd);
+      if (!segText) continue;
+      if (seg.chunkIndex !== null) {
+        const span = document.createElement('span');
+        span.dataset.chunk = seg.chunkIndex;
+        span.textContent = segText;
+        fragment.appendChild(span);
+      } else {
+        fragment.appendChild(document.createTextNode(segText));
+      }
+    }
+    parent.replaceChild(fragment, textNode);
   }
 }
 
 function highlightChunk(index) {
   // Remove previous highlight
-  const prev = readerContent.querySelector('[data-chunk].speaking');
-  if (prev) prev.classList.remove('speaking');
+  readerContent.querySelectorAll('[data-chunk].speaking')
+    .forEach(el => el.classList.remove('speaking'));
 
-  const el = readerContent.querySelector(`[data-chunk="${index}"]`);
-  if (!el) return;
+  const els = readerContent.querySelectorAll(`[data-chunk="${index}"]`);
+  if (!els.length) return;
 
-  el.classList.add('speaking');
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  els.forEach(el => el.classList.add('speaking'));
+  els[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function clearHighlight() {
@@ -368,7 +392,7 @@ async function toggleReaderMode() {
     readerByline.textContent = state.article.byline || state.article.siteName || '';
 
     // Chunk and build highlighted DOM
-    state.ttsChunks = chunkText(state.article.textContent);
+    state.ttsChunks = chunkText(state.article.textContent, state.settings.chunkMaxLen);
     buildHighlightedDOM(state.ttsChunks);
 
     webFrame.hidden   = true;
@@ -404,19 +428,20 @@ function stopTTS() {
   resetProgress();
   setPlayState(false);
   stopBtn.disabled = true;
+  prevBtn.disabled = true;
+  nextBtn.disabled = true;
+}
+
+function seekChunk(delta) {
+  if (!state.ttsQueue) return;
+  const target = state.ttsQueue.currentIndex + delta;
+  if (target < 0 || target >= state.ttsQueue.totalChunks) return;
+  state.ttsQueue.seekTo(target);
 }
 
 function setPlayState(playing) {
-  const icon  = $('play-icon');
-  const label = $('play-label');
-  if (playing) {
-    icon.textContent  = '⏸';
-    label.textContent = 'Pause';
-    playBtn.classList.add('btn-accent');
-  } else {
-    icon.textContent  = '▶';
-    label.textContent = 'Play';
-  }
+  const icon = $('play-icon');
+  icon.textContent = playing ? '⏸' : '▶';
 }
 
 async function handlePlayPause() {
@@ -475,6 +500,8 @@ async function handlePlayPause() {
 
   setPlayState(true);
   stopBtn.disabled = false;
+  prevBtn.disabled = false;
+  nextBtn.disabled = false;
   await state.ttsQueue.play();
 }
 
@@ -622,6 +649,8 @@ readerToggle.addEventListener('click', toggleReaderMode);
 // Playback controls
 playBtn.addEventListener('click', handlePlayPause);
 stopBtn.addEventListener('click', stopTTS);
+prevBtn.addEventListener('click', () => seekChunk(-1));
+nextBtn.addEventListener('click', () => seekChunk(+1));
 
 // Settings
 settingsBtn.addEventListener('click', openSettings);

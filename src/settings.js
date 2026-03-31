@@ -50,6 +50,7 @@ const DEFAULTS = {
   openaiKey: '',
   elevenlabsKey: '',
   corsProxy: 'https://corsbeater.wejick.workers.dev',
+  chunkMaxLen: 300,
 };
 
 /** Load settings from localStorage, merging with defaults. */

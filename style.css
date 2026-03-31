@@ -54,7 +54,7 @@ body {
   background: var(--bg);
   color: var(--text);
   display: grid;
-  grid-template-rows: auto 3px 1fr;
+  grid-template-rows: auto 1fr auto;
   grid-template-columns: 1fr;
   height: 100dvh;
   overflow: hidden;
@@ -73,6 +73,112 @@ body {
   gap: 0.5rem;
 }
 
+/* ============================================================
+   Bottom Player Bar
+   ============================================================ */
+#player-bar {
+  grid-row: 3;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+#tts-progress-bar {
+  height: 3px;
+  background: var(--border);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+#tts-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+#player-controls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1.25rem;
+  gap: 0.5rem;
+}
+
+#playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.player-btn {
+  padding: 0.4rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.player-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.player-btn .icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.player-btn-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+.player-btn.active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.player-btn-play {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  padding: 0;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-text);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent);
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+
+.player-btn-play:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: scale(1.06);
+}
+
+.player-btn-play:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.player-spacer {
+  width: 36px;
+}
+
 #url-row {
   display: flex;
   gap: 0.5rem;
@@ -82,13 +188,6 @@ body {
   flex: 1 1 0;
   min-width: 0;
   position: relative;
-}
-
-#controls-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
 }
 
 #url-input {
@@ -108,16 +207,6 @@ body {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-#playback-controls {
-  display: flex;
-  gap: 0.35rem;
-  align-items: center;
-}
-
-/* Spacer to push settings button to the right */
-#controls-row > #settings-btn {
-  margin-left: auto;
-}
 
 /* ============================================================
    Buttons
@@ -200,27 +289,10 @@ body {
 }
 
 /* ============================================================
-   TTS Progress Bar
-   ============================================================ */
-#tts-progress-bar {
-  grid-row: 2;
-  height: 3px;
-  background: var(--border);
-  overflow: hidden;
-}
-
-#tts-progress-fill {
-  height: 100%;
-  width: 0%;
-  background: var(--accent);
-  transition: width 0.3s ease;
-}
-
-/* ============================================================
    Content Area
    ============================================================ */
 #content-area {
-  grid-row: 3;
+  grid-row: 2;
   position: relative;
   overflow: hidden;
 }
@@ -466,7 +538,7 @@ body {
    ============================================================ */
 #toast-container {
   position: fixed;
-  bottom: 1.5rem;
+  bottom: 5.5rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 999;

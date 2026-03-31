@@ -14,71 +14,108 @@
 // Text chunker
 // ---------------------------------------------------------------------------
 
+// Matches sentence-internal clause boundaries used as cut points.
+const CLAUSE_BOUNDARY_RE = /[.?!;]|,\s+(?:and|but|or|nor|for|yet|so)\b/g;
+
+/**
+ * Return the end position of the last clause boundary within `text[0..maxPos]`,
+ * or -1 if none exists in that range.
+ */
+function findLastClauseBoundary(text, maxPos) {
+  const re = new RegExp(CLAUSE_BOUNDARY_RE.source, 'g');
+  let lastEnd = -1;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    const end = match.index + match[0].length;
+    if (end <= maxPos) lastEnd = end;
+    else break;
+  }
+  return lastEnd;
+}
+
 /**
  * Split plain text into sentence-aware chunks of at most `maxLen` characters.
  *
- * The algorithm:
+ * Algorithm (base unit = sentence):
  *  1. Split on sentence-ending punctuation (.!?) followed by whitespace.
- *  2. Greedily accumulate sentences into a chunk until adding the next
- *     sentence would exceed maxLen.
- *  3. If a single sentence is longer than maxLen it is hard-split at the
- *     last space before the limit.
+ *  2. Greedily accumulate whole sentences into a chunk.
+ *  3. When the next sentence doesn't fit:
+ *     - If the chunk has content, try to append a clause portion of the
+ *       sentence (cut at the last CLAUSE_BOUNDARY that fits), flush the
+ *       chunk, and re-queue the remainder.  If no clause portion fits,
+ *       flush the chunk and retry the full sentence with an empty chunk.
+ *     - If the chunk is empty (sentence must stand alone), cut at the last
+ *       CLAUSE_BOUNDARY within maxLen and re-queue the remainder.  If no
+ *       boundary exists, force-include the full sentence.
  *
  * @param {string} text
  * @param {number} [maxLen=900]
  * @returns {string[]}
  */
-export function chunkText(text, maxLen = 900) {
-  // Normalise whitespace
+export function chunkText(text, maxLen = 300) {
   const cleaned = text.replace(/\s+/g, ' ').trim();
   if (!cleaned) return [];
 
   // Split into sentences (lookbehind for sentence-ending punctuation)
-  let sentences;
+  let rawSentences;
   try {
-    sentences = cleaned.split(/(?<=[.!?])\s+/);
+    rawSentences = cleaned.split(/(?<=[.!?])\s+/);
   } catch {
-    // Fallback for browsers without lookbehind (very old)
-    sentences = cleaned.split(/[.!?]\s+/);
+    // Fallback for browsers without lookbehind support
+    rawSentences = cleaned.split(/[.!?]\s+/);
   }
 
+  const queue = rawSentences.map(s => s.trim()).filter(Boolean);
   const chunks = [];
   let current = '';
 
-  for (const sentence of sentences) {
-    const trimmed = sentence.trim();
-    if (!trimmed) continue;
+  while (queue.length > 0) {
+    const sentence = queue.shift();
+    const combined = current ? `${current} ${sentence}` : sentence;
 
-    if (current.length === 0) {
-      current = trimmed;
-    } else if (current.length + 1 + trimmed.length <= maxLen) {
-      current += ' ' + trimmed;
+    if (combined.length <= maxLen) {
+      current = combined;
+      continue;
+    }
+
+    if (!current) {
+      // Nothing accumulated yet — must include something from this sentence.
+      if (sentence.length <= maxLen) {
+        current = sentence;
+        continue;
+      }
+      // Sentence alone exceeds maxLen — cut at a clause boundary.
+      const cut = findLastClauseBoundary(sentence, maxLen);
+      if (cut !== -1) {
+        chunks.push(sentence.slice(0, cut).trimEnd());
+        const rest = sentence.slice(cut).trimStart();
+        if (rest) queue.unshift(rest);
+      } else {
+        // No clause boundary at all — force-include the full sentence.
+        chunks.push(sentence);
+      }
     } else {
-      chunks.push(current);
-      current = trimmed;
+      // Try to fit a clause portion of this sentence onto the current chunk.
+      const available = maxLen - current.length - 1;
+      const cut = available > 0 ? findLastClauseBoundary(sentence, available) : -1;
+
+      if (cut !== -1) {
+        current = `${current} ${sentence.slice(0, cut).trimEnd()}`;
+        chunks.push(current);
+        current = '';
+        const rest = sentence.slice(cut).trimStart();
+        if (rest) queue.unshift(rest);
+      } else {
+        // No clause portion fits — flush and retry this sentence.
+        chunks.push(current);
+        current = '';
+        queue.unshift(sentence);
+      }
     }
   }
 
   if (current) chunks.push(current);
-
-  // Hard-split any chunk still over maxLen (e.g. very long single sentence)
-  const result = [];
-  for (const chunk of chunks) {
-    if (chunk.length <= maxLen) {
-      result.push(chunk);
-    } else {
-      let remaining = chunk;
-      while (remaining.length > maxLen) {
-        let cut = remaining.lastIndexOf(' ', maxLen);
-        if (cut === -1) cut = maxLen;
-        result.push(remaining.slice(0, cut).trim());
-        remaining = remaining.slice(cut).trim();
-      }
-      if (remaining) result.push(remaining);
-    }
-  }
-
-  return result;
+  return chunks;
 }
 
 // ---------------------------------------------------------------------------
@@ -201,6 +238,7 @@ export class TTSQueue {
     this._index    = 0;
     this._paused   = false;
     this._stopped  = false;
+    this._gen      = 0;   // incremented on seek to invalidate in-flight chains
 
     // Map<chunkIndex, Promise<string>>  (string = blob: URL)
     this._fetches  = new Map();
@@ -274,6 +312,33 @@ export class TTSQueue {
   get currentIndex() { return this._index; }
   get totalChunks()  { return this._chunks.length; }
 
+  /**
+   * Jump to a specific chunk index and continue playing (or stay paused).
+   * Safe to call while playing, paused, or between chunks.
+   */
+  seekTo(index) {
+    if (index < 0 || index >= this._chunks.length) return;
+
+    const wasPaused = this._paused;
+
+    // Invalidate any in-flight _playChunk → _advance chain
+    this._gen++;
+    this._paused  = false;
+    this._stopped = false;
+
+    // Stop current audio without triggering the stale onEnded/onError chain
+    this._audio.pause();
+    this._audio.src = '';
+
+    // Kick off prefetch from the new position
+    for (let i = index; i <= index + this._prefetchDepth && i < this._chunks.length; i++) {
+      this._prefetch(i);
+    }
+
+    if (wasPaused) this._paused = true;
+    this._playChunk(index);
+  }
+
   // ---- Internal ------------------------------------------------------------
 
   /** Start a background fetch for chunk at `index` if not already fetching. */
@@ -295,6 +360,7 @@ export class TTSQueue {
 
   /** Play the chunk at `index`, waiting for its fetch to complete first. */
   async _playChunk(index) {
+    const gen = this._gen;
     if (this._stopped) return;
     if (index >= this._chunks.length) {
       // All chunks done
@@ -303,8 +369,10 @@ export class TTSQueue {
       return;
     }
 
-    this._index = index;
-    this._cbs.onChunkStart?.(index, this._chunks.length);
+    // Update progress immediately so the bar moves without waiting for the fetch.
+    // _index and onChunkStart (highlight) are deferred until the audio is ready,
+    // so that currentIndex stays on the previous chunk during the fetch window.
+    // This prevents seekChunk(+1) from reading a stale +1 index and skipping ahead.
     this._cbs.onProgress?.(index, this._chunks.length);
 
     // Ensure chunk is being prefetched
@@ -314,7 +382,7 @@ export class TTSQueue {
     try {
       url = await this._fetches.get(index);
     } catch (err) {
-      if (this._stopped) return;
+      if (this._stopped || this._gen !== gen) return;
       if (err.name === 'AbortError') return;
       this._cbs.onError?.(`Chunk ${index + 1} failed: ${err.message}`);
       // Skip to next chunk
@@ -322,10 +390,12 @@ export class TTSQueue {
       return;
     }
 
-    if (this._stopped) {
-      URL.revokeObjectURL(url);
-      return;
-    }
+    // Bail if stopped or a seek happened while we were fetching
+    if (this._stopped || this._gen !== gen) return;
+
+    // Audio is ready — now commit to this chunk
+    this._index = index;
+    this._cbs.onChunkStart?.(index, this._chunks.length);
 
     // Set up audio element for this chunk
     this._audio.src = url;
@@ -336,6 +406,8 @@ export class TTSQueue {
       this._audio.removeEventListener('error', onError);
       URL.revokeObjectURL(url);
       this._urls.delete(index);
+      this._fetches.delete(index); // allow re-fetch if user seeks back
+      if (this._gen !== gen) return; // seekTo() was called — abandon this chain
       await this._advance(index);
     };
 
@@ -344,12 +416,19 @@ export class TTSQueue {
       this._audio.removeEventListener('error', onError);
       URL.revokeObjectURL(url);
       this._urls.delete(index);
+      this._fetches.delete(index); // allow re-fetch if user seeks back
+      if (this._gen !== gen) return; // seekTo() was called — abandon this chain
       this._cbs.onError?.(`Audio playback error on chunk ${index + 1}, skipping.`);
       await this._advance(index);
     };
 
     this._audio.addEventListener('ended', onEnded);
     this._audio.addEventListener('error', onError);
+
+    if (this._paused) {
+      // Seeked while paused — audio is loaded and handlers are set; resume() will call play()
+      return;
+    }
 
     try {
       await this._audio.play();
