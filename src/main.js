@@ -168,6 +168,21 @@ function clearHighlight() {
 }
 
 // ---------------------------------------------------------------------------
+// Link interception helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Inject a script into the srcdoc HTML so that link clicks inside the iframe
+ * are posted to the parent instead of navigating the frame.
+ */
+function injectLinkIntercept(html) {
+  const script = `<script>document.addEventListener('click',function(e){var a=e.target.closest('a[href]');if(!a)return;var h=a.getAttribute('href');if(!h||/^(#|javascript:|mailto:|tel:)/.test(h))return;e.preventDefault();window.parent.postMessage({type:'navigate',url:a.href},'*');});<\/script>`;
+  const idx = html.lastIndexOf('</body>');
+  if (idx !== -1) return html.slice(0, idx) + script + html.slice(idx);
+  return html + script;
+}
+
+// ---------------------------------------------------------------------------
 // Page loader
 // ---------------------------------------------------------------------------
 
@@ -202,8 +217,8 @@ async function handleLoad() {
     state.rawHtml    = html;
     state.currentUrl = url;
 
-    // Show in iframe
-    webFrame.srcdoc = html;
+    // Show in iframe (with link-intercept script so clicks load via the app)
+    webFrame.srcdoc = injectLinkIntercept(html);
     webFrame.hidden = false;
     readerView.hidden = true;
 
@@ -467,6 +482,25 @@ document.addEventListener('click', e => {
 // Keyboard shortcut: Escape closes settings
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !settingsPanel.hidden) closeSettings();
+});
+
+// Handle link clicks from the iframe (postMessage from injectLinkIntercept)
+window.addEventListener('message', e => {
+  if (e.data && e.data.type === 'navigate' && e.data.url) {
+    urlInput.value = e.data.url;
+    handleLoad();
+  }
+});
+
+// Handle link clicks in reader mode via event delegation
+readerContent.addEventListener('click', e => {
+  const a = e.target.closest('a[href]');
+  if (!a) return;
+  const href = a.getAttribute('href');
+  if (!href || /^(#|javascript:|mailto:|tel:)/.test(href)) return;
+  e.preventDefault();
+  urlInput.value = a.href;
+  handleLoad();
 });
 
 // Offline indicator
