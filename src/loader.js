@@ -38,10 +38,6 @@ export async function fetchPage(url, corsProxy) {
   try {
     response = await fetch(proxyUrl, {
       signal: controller.signal,
-      headers: {
-        // Hint to corsproxy.io and similar to return the raw response
-        'X-Requested-With': 'XMLHttpRequest',
-      },
     });
   } catch (err) {
     if (err.name === 'AbortError') throw new Error('Request timed out after 20 seconds.');
