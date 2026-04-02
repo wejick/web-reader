@@ -29,6 +29,12 @@ const state = {
 const $ = id => document.getElementById(id);
 
 const urlInput       = $('url-input');
+const urlClearBtn    = $('url-clear-btn');
+
+function setUrlInput(val) {
+  urlInput.value = val;
+  urlClearBtn.hidden = !val;
+}
 const urlSuggestions = $('url-suggestions');
 const loadBtn        = $('load-btn');
 const backBtn        = $('back-btn');
@@ -82,7 +88,7 @@ async function navigateBack() {
   if (state.navIndex <= 0) return;
   state.navIndex--;
   const url = state.navStack[state.navIndex];
-  urlInput.value = url;
+  setUrlInput(url);
   await handleLoad({ skipPush: true });
 }
 
@@ -90,7 +96,7 @@ async function navigateForward() {
   if (state.navIndex >= state.navStack.length - 1) return;
   state.navIndex++;
   const url = state.navStack[state.navIndex];
-  urlInput.value = url;
+  setUrlInput(url);
   await handleLoad({ skipPush: true });
 }
 
@@ -149,7 +155,7 @@ function setAcActive(index) {
 function selectSuggestion(index) {
   const item = acItems[index];
   if (!item) return;
-  urlInput.value = item.url;
+  setUrlInput(item.url);
   hideSuggestions();
   handleLoad();
 }
@@ -519,7 +525,9 @@ function seekChunk(delta) {
 
 function setPlayState(playing) {
   const icon = $('play-icon');
-  icon.textContent = playing ? '⏸' : '▶';
+  icon.innerHTML = playing
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 }
 
 async function handlePlayPause() {
@@ -690,8 +698,17 @@ loadBtn.addEventListener('click', handleLoad);
 backBtn.addEventListener('click', navigateBack);
 forwardBtn.addEventListener('click', navigateForward);
 
+urlClearBtn.addEventListener('click', () => {
+  urlInput.value = '';
+  urlClearBtn.hidden = true;
+  urlInput.focus();
+});
+
 urlInput.addEventListener('focus', updateSuggestions);
-urlInput.addEventListener('input', updateSuggestions);
+urlInput.addEventListener('input', () => {
+  urlClearBtn.hidden = !urlInput.value;
+  updateSuggestions();
+});
 urlInput.addEventListener('blur', () => setTimeout(hideSuggestions, 150));
 
 urlInput.addEventListener('keydown', e => {
@@ -772,7 +789,7 @@ document.addEventListener('keydown', e => {
 // Handle link clicks from the iframe (postMessage from injectLinkIntercept)
 window.addEventListener('message', e => {
   if (e.data && e.data.type === 'navigate' && e.data.url) {
-    urlInput.value = e.data.url;
+    setUrlInput(e.data.url);
     handleLoad();
   }
 });
@@ -784,7 +801,7 @@ readerContent.addEventListener('click', e => {
   const href = a.getAttribute('href');
   if (!href || /^(#|javascript:|mailto:|tel:)/.test(href)) return;
   e.preventDefault();
-  urlInput.value = a.href;
+  setUrlInput(a.href);
   handleLoad();
 });
 
