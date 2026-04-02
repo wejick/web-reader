@@ -374,11 +374,48 @@ function clearHighlight() {
 // ---------------------------------------------------------------------------
 
 /**
- * Inject a script into the srcdoc HTML so that link clicks inside the iframe
- * are posted to the parent instead of navigating the frame.
+ * Strip <meta http-equiv="refresh"> tags that would navigate the iframe
+ * away from the srcdoc, bypassing our proxy.
+ */
+function stripMetaRefresh(html) {
+  return html.replace(/<meta[^>]+http-equiv\s*=\s*["']?refresh["']?[^>]*>/gi, '');
+}
+
+/**
+ * Inject a script into the srcdoc HTML so that link clicks, form submissions,
+ * and window.open calls inside the iframe are posted to the parent instead of
+ * navigating the frame directly.
  */
 function injectLinkIntercept(html) {
-  const script = `<script>document.addEventListener('click',function(e){var a=e.target.closest('a[href]');if(!a)return;var h=a.getAttribute('href');if(!h||/^(#|javascript:|mailto:|tel:)/.test(h))return;e.preventDefault();window.parent.postMessage({type:'navigate',url:a.href},'*');});<\/script>`;
+  // Strip meta refresh redirects first
+  html = stripMetaRefresh(html);
+
+  const script = `<script>
+// Intercept link clicks
+document.addEventListener('click',function(e){
+  var a=e.target.closest('a[href]');if(!a)return;
+  var h=a.getAttribute('href');
+  if(!h||/^(#|javascript:|mailto:|tel:)/.test(h))return;
+  e.preventDefault();
+  window.parent.postMessage({type:'navigate',url:a.href},'*');
+});
+// Intercept form submissions
+document.addEventListener('submit',function(e){
+  var f=e.target;if(!f||f.tagName!=='FORM')return;
+  e.preventDefault();
+  var u=new URL(f.action||location.href);
+  var fd=new FormData(f);
+  if(!f.method||f.method.toUpperCase()==='GET'){
+    fd.forEach(function(v,k){u.searchParams.set(k,v)});
+  }
+  window.parent.postMessage({type:'navigate',url:u.href},'*');
+});
+// Intercept window.open
+window.open=function(url){
+  if(url){try{var u=new URL(url,location.href);window.parent.postMessage({type:'navigate',url:u.href},'*')}catch(e){}}
+  return null;
+};
+<\/script>`;
   const idx = html.lastIndexOf('</body>');
   if (idx !== -1) return html.slice(0, idx) + script + html.slice(idx);
   return html + script;

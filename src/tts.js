@@ -249,7 +249,7 @@ export class TTSQueue {
     this._abortCtrl = new AbortController();
 
     // Prefetch depth: number of chunks ahead of the current one to fetch
-    this._prefetchDepth = 2;
+    this._prefetchDepth = 1;
   }
 
   // ---- Public API ----------------------------------------------------------
