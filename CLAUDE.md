@@ -10,7 +10,7 @@ Web Reader is a static, client-side web app for reading and listening to web art
 - **Build:** Vite 5
 - **Testing:** Vitest with jsdom
 - **Dependencies:** `@mozilla/readability` (article extraction)
-- **Deployment:** Cloudflare Pages via GitHub Actions
+- **Deployment:** Cloudflare Pages (`npm run build && npx wrangler deploy`)
 
 ## Commands
 
