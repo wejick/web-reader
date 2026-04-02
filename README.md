@@ -1,10 +1,8 @@
 # Web Reader
 
-Read any web page out loud. OpenAI and elevenlab are provided right now, bring your own key.
+Read any web page out loud. OpenAI and elevenlab support are provided right now, bring your own key.
 
-<img src="docs/screenshot_desktop.png" alt="Web Reader Screenshot" width="200">
-
-<img src="docs/screenshot.png" alt="Web Reader Screenshot" width="200">
+<img src="docs/screenshot_desktop.png" alt="Web Reader Screenshot" width="400"> <img src="docs/screenshot.png" alt="Web Reader Screenshot" width="400">
 
 
 ## Configuration
