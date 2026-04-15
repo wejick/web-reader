@@ -1,0 +1,399 @@
+/* ------------------------------------------------------------------ */
+/* Reset                                                                */
+/* ------------------------------------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ------------------------------------------------------------------ */
+/* Design tokens                                                        */
+/* ------------------------------------------------------------------ */
+:host {
+  --bg:           #ffffff;
+  --surface:      #f8fafc;
+  --surface-2:    #f1f5f9;
+  --text:         #0f172a;
+  --text-muted:   #64748b;
+  --accent:       #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-text:  #ffffff;
+  --border:       #e2e8f0;
+  --highlight-bg: #fef08a;
+  --error-bg:     #fee2e2;
+  --error-text:   #991b1b;
+  --radius:       4px;
+
+  all: initial;
+  display: block;
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  z-index: 2147483647;
+  box-shadow: -2px 0 16px rgba(0, 0, 0, 0.15);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    --bg:           #0f172a;
+    --surface:      #1e293b;
+    --surface-2:    #334155;
+    --text:         #f1f5f9;
+    --text-muted:   #94a3b8;
+    --border:       #334155;
+    --highlight-bg: #78350f;
+    --error-bg:     #450a0a;
+    --error-text:   #fca5a5;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Panel shell                                                          */
+/* ------------------------------------------------------------------ */
+#panel {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------ */
+/* Header                                                               */
+/* ------------------------------------------------------------------ */
+#panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+#panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.2px;
+}
+
+#panel-actions {
+  display: flex;
+  gap: 2px;
+}
+
+#panel-actions button {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 7px;
+  transition: all 0.12s;
+}
+
+#panel-actions button:hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrollable content area                                              */
+/* ------------------------------------------------------------------ */
+#panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  scroll-behavior: smooth;
+}
+
+/* ------------------------------------------------------------------ */
+/* Loading state                                                        */
+/* ------------------------------------------------------------------ */
+#loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ------------------------------------------------------------------ */
+/* Error banner                                                         */
+/* ------------------------------------------------------------------ */
+#error {
+  margin: 16px;
+  padding: 12px 14px;
+  background: var(--error-bg);
+  color: var(--error-text);
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------------------------ */
+/* Article view                                                         */
+/* ------------------------------------------------------------------ */
+#article-view {
+  padding: 20px 18px 16px;
+}
+
+#article-title {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+#article-byline {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+
+#article-body {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text);
+}
+
+#article-body p               { margin-bottom: 1em; }
+#article-body h1,
+#article-body h2,
+#article-body h3,
+#article-body h4              { margin: 1.4em 0 0.5em; line-height: 1.3; }
+#article-body h2              { font-size: 16px; }
+#article-body h3              { font-size: 14px; }
+#article-body a               { color: var(--accent); }
+#article-body img             { max-width: 100%; height: auto; border-radius: var(--radius); margin: 4px 0; }
+#article-body blockquote      { border-left: 3px solid var(--accent); margin: 1em 0; padding: 3px 12px; color: var(--text-muted); font-style: italic; }
+#article-body pre             { background: var(--surface); border-radius: var(--radius); padding: 10px 12px; overflow-x: auto; margin-bottom: 1em; }
+#article-body code            { background: var(--surface); border-radius: 3px; padding: 1px 4px; font-family: 'Menlo', 'Consolas', monospace; font-size: 12px; }
+#article-body pre code        { background: none; padding: 0; }
+#article-body ul,
+#article-body ol              { padding-left: 1.4em; margin-bottom: 1em; }
+#article-body li              { margin-bottom: 0.3em; }
+
+/* Active TTS chunk highlight */
+mark.wr-highlight {
+  background: var(--highlight-bg);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Player bar                                                           */
+/* ------------------------------------------------------------------ */
+#player-bar {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 9px 12px 11px;
+  flex-shrink: 0;
+}
+
+#progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+#progress-track {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.2s;
+  width: 0%;
+}
+
+#progress-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 34px;
+  text-align: right;
+}
+
+#controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+#controls button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 5px 11px;
+  transition: all 0.12s;
+  min-width: 36px;
+}
+
+#controls button:hover {
+  background: var(--surface-2);
+  border-color: var(--text-muted);
+}
+
+#btn-play {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent-text) !important;
+  padding: 5px 16px !important;
+}
+
+#btn-play:hover { background: var(--accent-hover) !important; border-color: var(--accent-hover) !important; }
+
+/* ------------------------------------------------------------------ */
+/* Settings panel (overlays content area)                              */
+/* ------------------------------------------------------------------ */
+#settings-panel {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  overflow-y: auto;
+  z-index: 10;
+  padding: 16px 18px;
+}
+
+#settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+#settings-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#btn-settings-close {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 3px 7px;
+  transition: all 0.12s;
+}
+
+#btn-settings-close:hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.setting-group {
+  margin-bottom: 13px;
+}
+
+.setting-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+}
+
+.setting-group select,
+.setting-group input {
+  width: 100%;
+  padding: 7px 9px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.setting-group select:focus,
+.setting-group input:focus { border-color: var(--accent); }
+
+.btn-save {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  background: var(--accent);
+  color: var(--accent-text);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.btn-save:hover { background: var(--accent-hover); }
+
+/* ------------------------------------------------------------------ */
+/* Toast notification                                                   */
+/* ------------------------------------------------------------------ */
+.wr-toast {
+  position: absolute;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 20;
+  pointer-events: none;
+  animation: toast-in 0.2s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .wr-toast { background: #f1f5f9; color: #0f172a; }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ------------------------------------------------------------------ */
+/* Utilities                                                            */
+/* ------------------------------------------------------------------ */
+.hidden { display: none !important; }
