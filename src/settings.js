@@ -6,7 +6,7 @@
  * the user explicitly configures.
  */
 
-const STORAGE_KEY = 'web-reader-settings';
+export const STORAGE_KEY = 'web-reader-settings';
 
 const PROVIDER_OPTIONS = {
   openai: {
@@ -43,7 +43,7 @@ const PROVIDER_OPTIONS = {
   },
 };
 
-const DEFAULTS = {
+export const DEFAULTS = {
   provider: 'openai',
   model: 'tts-1',
   voice: 'alloy',
