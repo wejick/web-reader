@@ -13,56 +13,8 @@
 
 import { parseArticle } from '../src/reader.js';
 import { chunkText, TTSQueue } from '../src/tts.js';
+import { STORAGE_KEY, DEFAULTS, getProviderOptions } from '../src/settings.js';
 import panelCss from './panel.css?raw';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Settings (chrome.storage.local wrapper — same shape as web app settings)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const STORAGE_KEY = 'web-reader-settings';
-
-const DEFAULTS = {
-  provider:      'openai',
-  model:         'tts-1',
-  voice:         'alloy',
-  openaiKey:     '',
-  elevenlabsKey: '',
-  chunkMaxLen:   300,
-};
-
-const PROVIDER_OPTIONS = {
-  openai: {
-    models: [
-      { value: 'tts-1',    label: 'TTS-1 (faster)' },
-      { value: 'tts-1-hd', label: 'TTS-1 HD (quality)' },
-    ],
-    voices: [
-      { value: 'alloy',   label: 'Alloy' },
-      { value: 'echo',    label: 'Echo' },
-      { value: 'fable',   label: 'Fable' },
-      { value: 'onyx',    label: 'Onyx' },
-      { value: 'nova',    label: 'Nova' },
-      { value: 'shimmer', label: 'Shimmer' },
-    ],
-  },
-  elevenlabs: {
-    models: [
-      { value: 'eleven_multilingual_v2', label: 'Multilingual v2' },
-      { value: 'eleven_flash_v2_5',      label: 'Flash v2.5 (fast)' },
-    ],
-    voices: [
-      { value: '21m00Tcm4TlvDq8ikWAM', label: 'Rachel' },
-      { value: 'AZnzlk1XvdvUeBnXmlld', label: 'Domi' },
-      { value: 'EXAVITQu4vr4xnSDxMaL', label: 'Bella' },
-      { value: 'ErXwobaYiN019PkySvjV', label: 'Antoni' },
-      { value: 'MF3mGyEYCl7XYWbV9V6O', label: 'Elli' },
-      { value: 'TxGEqnHWrfWFTfGW9XjX', label: 'Josh' },
-      { value: 'VR6AewLTigWG4xSOukaG', label: 'Arnold' },
-      { value: 'pNInz6obpgDQGcFmaJgB', label: 'Adam' },
-      { value: 'yoZ06aMxZJJ28mfd3POQ', label: 'Sam' },
-    ],
-  },
-};
 
 function loadSettings() {
   return new Promise(resolve => {
@@ -266,7 +218,7 @@ async function readCurrentPage() {
 
   ttsChunks  = chunkText(article.textContent ?? '', settings.chunkMaxLen);
   currentIdx = 0;
-  setProgress(0, ttsChunks.length);
+  setProgress(-1, ttsChunks.length);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -292,7 +244,7 @@ function handlePlayPause() {
 function handleStop() {
   stopTTS();
   currentIdx = 0;
-  setProgress(0, ttsChunks.length);
+  setProgress(-1, ttsChunks.length);
   q('#btn-play').innerHTML = '&#9654;';
   clearHighlight();
 }
@@ -327,7 +279,7 @@ function startTTS(fromIndex = 0) {
     onProgress: (i, total) => setProgress(i, total),
     onEnd: () => {
       currentIdx = 0;
-      setProgress(0, ttsChunks.length);
+      setProgress(-1, ttsChunks.length);
       q('#btn-play').innerHTML = '&#9654;';
       clearHighlight();
     },
@@ -343,9 +295,21 @@ function startTTS(fromIndex = 0) {
 }
 
 function setProgress(index, total) {
-  const pct = total > 0 ? ((index + 1) / total) * 100 : 0;
-  q('#progress-fill').style.width  = `${pct}%`;
-  q('#progress-label').textContent = total > 0 ? `${index + 1} / ${total}` : '0 / 0';
+  if (total <= 0) {
+    q('#progress-fill').style.width  = '0%';
+    q('#progress-label').textContent = '0 / 0';
+  } else if (index < 0) {
+    // Reset / idle state — no chunk active yet
+    q('#progress-fill').style.width  = '0%';
+    q('#progress-label').textContent = `0 / ${total}`;
+  } else if (index >= total) {
+    // TTSQueue fires onProgress(total, total) at end-of-stream
+    q('#progress-fill').style.width  = '100%';
+    q('#progress-label').textContent = `${total} / ${total}`;
+  } else {
+    q('#progress-fill').style.width  = `${((index + 1) / total) * 100}%`;
+    q('#progress-label').textContent = `${index + 1} / ${total}`;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -354,12 +318,12 @@ function setProgress(index, total) {
 
 function highlightChunk(index) {
   clearHighlight();
-  const bodyEl   = q('#article-body');
-  const chunkText = ttsChunks[index]?.trim();
-  if (!chunkText || !bodyEl) return;
+  const bodyEl = q('#article-body');
+  const chunk  = ttsChunks[index]?.trim();
+  if (!chunk || !bodyEl) return;
 
   // Search for the first ~25 chars of the chunk in the article text nodes.
-  const needle = chunkText.slice(0, 25);
+  const needle = chunk.slice(0, 25);
   const walker = document.createTreeWalker(bodyEl, NodeFilter.SHOW_TEXT);
   let node;
 
@@ -369,10 +333,10 @@ function highlightChunk(index) {
 
     // Only wrap with <mark> if the full chunk fits in this single text node
     // (avoids surroundContents throwing for cross-element ranges).
-    if (pos + chunkText.length <= node.textContent.length) {
+    if (pos + chunk.length <= node.textContent.length) {
       const range = document.createRange();
       range.setStart(node, pos);
-      range.setEnd(node, pos + chunkText.length);
+      range.setEnd(node, pos + chunk.length);
       const mark = document.createElement('mark');
       mark.className = 'wr-highlight';
       try {
@@ -424,7 +388,7 @@ function closeSettings() {
 
 function refreshProviderSelectors() {
   const provider = q('#s-provider').value;
-  const opts     = PROVIDER_OPTIONS[provider] ?? PROVIDER_OPTIONS.openai;
+  const opts     = getProviderOptions(provider);
 
   q('#s-model').innerHTML = opts.models
     .map(m => `<option value="${m.value}">${m.label}</option>`)
