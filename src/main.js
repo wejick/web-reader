@@ -64,6 +64,7 @@ const modelSel      = $('tts-model');
 const voiceSel      = $('tts-voice');
 const openaiKeyIn   = $('openai-key');
 const elevenlabsKeyIn = $('elevenlabs-key');
+const openrouterKeyIn = $('openrouter-key');
 const corsProxyIn   = $('cors-proxy');
 
 // ---------------------------------------------------------------------------
@@ -637,6 +638,7 @@ function openSettings() {
   providerSel.value     = state.settings.provider;
   openaiKeyIn.value     = state.settings.openaiKey;
   elevenlabsKeyIn.value = state.settings.elevenlabsKey;
+  openrouterKeyIn.value = state.settings.openrouterKey;
   corsProxyIn.value     = state.settings.corsProxy;
 
   populateModelVoiceSelectors(
@@ -718,6 +720,7 @@ function handleSettingsSave() {
     voice:         voiceSel.value,
     openaiKey:     openaiKeyIn.value.trim(),
     elevenlabsKey: elevenlabsKeyIn.value.trim(),
+    openrouterKey: openrouterKeyIn.value.trim(),
     corsProxy:     corsProxyIn.value.trim(),
   };
 
@@ -869,6 +872,7 @@ window.addEventListener('offline', () => showToast('You appear to be offline.', 
   providerSel.value     = state.settings.provider;
   openaiKeyIn.value     = state.settings.openaiKey;
   elevenlabsKeyIn.value = state.settings.elevenlabsKey;
+  openrouterKeyIn.value = state.settings.openrouterKey;
   corsProxyIn.value     = state.settings.corsProxy;
 
   // Focus URL input

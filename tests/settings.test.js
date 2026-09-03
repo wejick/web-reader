@@ -14,6 +14,7 @@ describe('settings', () => {
       expect(s.voice).toBe('alloy');
       expect(s.openaiKey).toBe('');
       expect(s.elevenlabsKey).toBe('');
+      expect(s.openrouterKey).toBe('');
       expect(s.corsProxy).toBe('https://corsbeater.wejick.workers.dev');
     });
 
@@ -52,6 +53,12 @@ describe('settings', () => {
 
     it('returns elevenlabs options', () => {
       const opts = getProviderOptions('elevenlabs');
+      expect(opts.models.length).toBeGreaterThan(0);
+      expect(opts.voices.length).toBeGreaterThan(0);
+    });
+
+    it('returns openrouter options', () => {
+      const opts = getProviderOptions('openrouter');
       expect(opts.models.length).toBeGreaterThan(0);
       expect(opts.voices.length).toBeGreaterThan(0);
     });

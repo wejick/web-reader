@@ -88,6 +88,7 @@ const PANEL_HTML = `
       <select id="s-provider">
         <option value="openai">OpenAI</option>
         <option value="elevenlabs">ElevenLabs</option>
+        <option value="openrouter">OpenRouter</option>
       </select>
     </div>
     <div class="setting-group">
@@ -105,6 +106,10 @@ const PANEL_HTML = `
     <div class="setting-group" id="s-el-group">
       <label>ElevenLabs API Key</label>
       <input id="s-el-key" type="password" placeholder="&hellip;" autocomplete="off">
+    </div>
+    <div class="setting-group" id="s-or-group">
+      <label>OpenRouter API Key</label>
+      <input id="s-or-key" type="password" placeholder="sk-or-&hellip;" autocomplete="off">
     </div>
     <button class="btn-save" id="btn-save-settings">Save</button>
   </div>
@@ -372,6 +377,7 @@ async function openSettings() {
   q('#s-provider').value   = settings.provider;
   q('#s-openai-key').value = settings.openaiKey     ?? '';
   q('#s-el-key').value     = settings.elevenlabsKey ?? '';
+  q('#s-or-key').value     = settings.openrouterKey ?? '';
 
   refreshProviderSelectors();
 
@@ -399,6 +405,7 @@ function refreshProviderSelectors() {
     .join('');
 
   q('#s-el-group').style.display = provider === 'elevenlabs' ? '' : 'none';
+  q('#s-or-group').style.display = provider === 'openrouter' ? '' : 'none';
 }
 
 async function handleSaveSettings() {
@@ -409,6 +416,7 @@ async function handleSaveSettings() {
     voice:         q('#s-voice').value,
     openaiKey:     q('#s-openai-key').value.trim(),
     elevenlabsKey: q('#s-el-key').value.trim(),
+    openrouterKey: q('#s-or-key').value.trim(),
   };
   await saveSettings(updated);
   settings = updated;

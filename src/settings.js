@@ -41,6 +41,22 @@ const PROVIDER_OPTIONS = {
       { value: 'yoZ06aMxZJJ28mfd3POQ', label: 'Sam' },
     ],
   },
+  openrouter: {
+    // OpenRouter's /api/v1/audio/speech endpoint is OpenAI-compatible; these
+    // are OpenAI's TTS voices, which work with the OpenAI TTS model routed
+    // through OpenRouter.
+    models: [
+      { value: 'openai/gpt-4o-mini-tts-2025-12-15', label: 'GPT-4o Mini TTS (OpenAI, via OpenRouter)' },
+    ],
+    voices: [
+      { value: 'alloy',   label: 'Alloy' },
+      { value: 'echo',    label: 'Echo' },
+      { value: 'fable',   label: 'Fable' },
+      { value: 'onyx',    label: 'Onyx' },
+      { value: 'nova',    label: 'Nova' },
+      { value: 'shimmer', label: 'Shimmer' },
+    ],
+  },
 };
 
 export const DEFAULTS = {
@@ -49,6 +65,7 @@ export const DEFAULTS = {
   voice: 'alloy',
   openaiKey: '',
   elevenlabsKey: '',
+  openrouterKey: '',
   corsProxy: 'https://corsbeater.wejick.workers.dev',
   chunkMaxLen: 300,
 };
