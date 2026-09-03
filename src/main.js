@@ -686,6 +686,15 @@ async function loadElevenLabsOptions(apiKey) {
         voiceSel.appendChild(opt);
       }
       if (!voiceSel.value) voiceSel.selectedIndex = 0;
+    } else {
+      // No voices in this account yet — the dropdown still shows the
+      // built-in preset list, but those are legacy IDs that may not be
+      // usable, and Voice Library voices can't be used by ID alone.
+      showToast(
+        'No voices in your ElevenLabs account. Add one from the Voice Library first.',
+        'info',
+        6000,
+      );
     }
 
     // Persist the resolved model/voice back to settings
