@@ -13,7 +13,7 @@
 
 import { parseArticle } from '../src/reader.js';
 import { chunkText, TTSQueue } from '../src/tts.js';
-import { STORAGE_KEY, DEFAULTS, getProviderOptions } from '../src/settings.js';
+import { STORAGE_KEY, DEFAULTS, getModelsForProvider, getVoicesForModel } from '../src/settings.js';
 import panelCss from './panel.css?raw';
 
 function loadSettings() {
@@ -184,7 +184,18 @@ function wireEvents() {
   q('#btn-prev').addEventListener('click', () => seekChunk(currentIdx - 1));
   q('#btn-next').addEventListener('click', () => seekChunk(currentIdx + 1));
 
-  q('#s-provider').addEventListener('change', () => refreshProviderSelectors());
+  q('#s-provider').addEventListener('change', () => {
+    refreshModelSelector(q('#s-provider').value, settings.model);
+    refreshVoiceSelector(q('#s-provider').value, q('#s-model').value, settings.voice);
+  });
+
+  // Model change → refresh voice dropdown to match the newly selected model.
+  // ElevenLabs voice IDs are account-wide (not model-specific), so leave the
+  // voice list alone there.
+  q('#s-model').addEventListener('change', () => {
+    if (q('#s-provider').value === 'elevenlabs') return;
+    refreshVoiceSelector(q('#s-provider').value, q('#s-model').value, settings.voice);
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -379,11 +390,8 @@ async function openSettings() {
   q('#s-el-key').value     = settings.elevenlabsKey ?? '';
   q('#s-or-key').value     = settings.openrouterKey ?? '';
 
-  refreshProviderSelectors();
-
-  // Restore saved model/voice after populating options
-  q('#s-model').value = settings.model;
-  q('#s-voice').value = settings.voice;
+  refreshModelSelector(settings.provider, settings.model);
+  refreshVoiceSelector(settings.provider, q('#s-model').value, settings.voice);
 
   q('#settings-panel').classList.remove('hidden');
 }
@@ -392,20 +400,29 @@ function closeSettings() {
   q('#settings-panel').classList.add('hidden');
 }
 
-function refreshProviderSelectors() {
-  const provider = q('#s-provider').value;
-  const opts     = getProviderOptions(provider);
+function refreshModelSelector(provider, currentModel) {
+  const models = getModelsForProvider(provider);
 
-  q('#s-model').innerHTML = opts.models
+  q('#s-model').innerHTML = models
     .map(m => `<option value="${m.value}">${m.label}</option>`)
     .join('');
-
-  q('#s-voice').innerHTML = opts.voices
-    .map(v => `<option value="${v.value}">${v.label}</option>`)
-    .join('');
+  if (models.some(m => m.value === currentModel)) {
+    q('#s-model').value = currentModel;
+  }
 
   q('#s-el-group').style.display = provider === 'elevenlabs' ? '' : 'none';
   q('#s-or-group').style.display = provider === 'openrouter' ? '' : 'none';
+}
+
+function refreshVoiceSelector(provider, model, currentVoice) {
+  const voices = getVoicesForModel(provider, model);
+
+  q('#s-voice').innerHTML = voices
+    .map(v => `<option value="${v.value}">${v.label}</option>`)
+    .join('');
+  if (voices.some(v => v.value === currentVoice)) {
+    q('#s-voice').value = currentVoice;
+  }
 }
 
 async function handleSaveSettings() {

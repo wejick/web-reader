@@ -2,7 +2,7 @@
  * main.js — App entry point. Wires together settings, loader, reader, and TTS.
  */
 
-import { loadSettings, saveSettings, populateModelVoiceSelectors, fetchElevenLabsVoices, fetchElevenLabsModels } from './settings.js';
+import { loadSettings, saveSettings, populateModelVoiceSelectors, populateVoiceSelector, fetchElevenLabsVoices, fetchElevenLabsModels } from './settings.js';
 import { addToHistory, getHistory, searchHistory, clearHistory } from './history.js';
 import { fetchPage } from './loader.js';
 import { parseArticle } from './reader.js';
@@ -814,6 +814,14 @@ providerSel.addEventListener('change', () => {
   if (providerSel.value === 'elevenlabs' && elevenlabsKeyIn.value.trim()) {
     loadElevenLabsOptions(elevenlabsKeyIn.value.trim());
   }
+});
+
+// Model change → refresh voice dropdown to match the newly selected model.
+// ElevenLabs voice IDs are account-wide (not model-specific), so leave the
+// voice list alone there — otherwise it'd stomp on a live-fetched voice list.
+modelSel.addEventListener('change', () => {
+  if (providerSel.value === 'elevenlabs') return;
+  populateVoiceSelector(providerSel.value, modelSel.value, voiceSel, state.settings.voice);
 });
 
 // Close settings panel when clicking outside of it
