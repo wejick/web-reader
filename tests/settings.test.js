@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { loadSettings, saveSettings, getProviderOptions, populateModelVoiceSelectors } from '../src/settings.js';
+import { loadSettings, saveSettings, getProviderOptions, populateModelVoiceSelectors, fetchElevenLabsVoices } from '../src/settings.js';
 
 describe('settings', () => {
   beforeEach(() => {
@@ -83,6 +83,54 @@ describe('settings', () => {
 
       expect(modelEl.selectedIndex).toBe(0);
       expect(voiceEl.selectedIndex).toBe(0);
+    });
+  });
+
+  describe('fetchElevenLabsVoices', () => {
+    beforeEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('requests show_legacy=true so accounts that still have access see premade voices', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ voices: [] }),
+      });
+
+      await fetchElevenLabsVoices('el-test');
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'https://api.elevenlabs.io/v1/voices?show_legacy=true',
+        expect.objectContaining({ headers: { 'xi-api-key': 'el-test' } }),
+      );
+    });
+
+    it('returns an empty array for a free-tier account with no added voices', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ voices: [] }),
+      });
+
+      const voices = await fetchElevenLabsVoices('el-test');
+      expect(voices).toEqual([]);
+    });
+
+    it('maps and sorts voices by name', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          voices: [
+            { voice_id: 'b', name: 'Zara' },
+            { voice_id: 'a', name: 'Amber' },
+          ],
+        }),
+      });
+
+      const voices = await fetchElevenLabsVoices('el-test');
+      expect(voices).toEqual([
+        { value: 'a', label: 'Amber' },
+        { value: 'b', label: 'Zara' },
+      ]);
     });
   });
 });

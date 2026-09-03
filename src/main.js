@@ -686,6 +686,12 @@ async function loadElevenLabsOptions(apiKey) {
         voiceSel.appendChild(opt);
       }
       if (!voiceSel.value) voiceSel.selectedIndex = 0;
+    } else {
+      showToast(
+        'No voices in your ElevenLabs account. Add one from the Voice Library first.',
+        'info',
+        6000,
+      );
     }
 
     // Persist the resolved model/voice back to settings

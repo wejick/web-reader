@@ -196,7 +196,17 @@ async function fetchElevenLabs(text, settings, signal) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.detail?.message ?? err?.detail ?? `ElevenLabs TTS error: HTTP ${res.status}`);
+    const status = err?.detail?.status;
+    const message = err?.detail?.message ?? err?.detail;
+
+    if (status === 'voice_not_found') {
+      throw new Error(
+        `${message ?? 'Voice not found.'} Voice Library voices must be added to your ` +
+        `ElevenLabs account first (Voice Library → "Add to my voices") before they can be used.`
+      );
+    }
+
+    throw new Error(message ?? `ElevenLabs TTS error: HTTP ${res.status}`);
   }
 
   const blob = await res.blob();

@@ -159,6 +159,35 @@ describe('fetchAudio', () => {
       openaiKey: 'sk-bad',
     })).rejects.toThrow('Invalid key');
   });
+
+  it('throws a helpful message for an unadded ElevenLabs Voice Library voice', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: () => Promise.resolve({
+        detail: { status: 'voice_not_found', message: "Voice with id 'abc123' not found." },
+      }),
+    });
+
+    await expect(fetchAudio('hello', {
+      provider: 'elevenlabs',
+      elevenlabsKey: 'el-test',
+      voice: 'abc123',
+    })).rejects.toThrow('Voice Library voices must be added to your ElevenLabs account first');
+  });
+
+  it('throws on non-OK ElevenLabs response with a generic detail', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({ detail: 'Internal error' }),
+    });
+
+    await expect(fetchAudio('hello', {
+      provider: 'elevenlabs',
+      elevenlabsKey: 'el-test',
+    })).rejects.toThrow('Internal error');
+  });
 });
 
 // ---------------------------------------------------------------------------

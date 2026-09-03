@@ -83,7 +83,7 @@ export function getProviderOptions(provider) {
  * @returns {Promise<Array<{value: string, label: string}>>}
  */
 export async function fetchElevenLabsVoices(apiKey) {
-  const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+  const res = await fetch('https://api.elevenlabs.io/v1/voices?show_legacy=true', {
     headers: { 'xi-api-key': apiKey },
   });
   if (!res.ok) throw new Error(`ElevenLabs API error: HTTP ${res.status}`);

@@ -596,7 +596,8 @@ body {
   box-shadow: none;
   animation: toast-in 0.15s ease forwards;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
+  max-width: min(90vw, 32rem);
 }
 
 .toast.error {
