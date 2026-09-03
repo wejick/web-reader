@@ -79,19 +79,10 @@ export function getProviderOptions(provider) {
 /**
  * Fetch available voices from the ElevenLabs API for this account.
  * Returns an array of { value, label } options.
- *
- * Only returns voices already in the account's voice list (premade voices
- * plus anything added from the Voice Library). Voice Library voices that
- * haven't been added to the account are not included and are not usable
- * for TTS on the free tier — see the "cannot use library voice" error
- * surfaced from fetchAudio() in tts.js.
- *
  * @param {string} apiKey
  * @returns {Promise<Array<{value: string, label: string}>>}
  */
 export async function fetchElevenLabsVoices(apiKey) {
-  // show_legacy=true also surfaces older premade voices (e.g. Rachel, Adam)
-  // on accounts that still have access to them.
   const res = await fetch('https://api.elevenlabs.io/v1/voices?show_legacy=true', {
     headers: { 'xi-api-key': apiKey },
   });
