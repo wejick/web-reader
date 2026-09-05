@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { loadSettings, saveSettings, getProviderOptions, populateModelVoiceSelectors, fetchElevenLabsVoices } from '../src/settings.js';
+import { loadSettings, saveSettings, getModelsForProvider, getVoicesForModel, populateModelVoiceSelectors, populateVoiceSelector, fetchElevenLabsVoices } from '../src/settings.js';
 
 describe('settings', () => {
   beforeEach(() => {
@@ -14,6 +14,7 @@ describe('settings', () => {
       expect(s.voice).toBe('alloy');
       expect(s.openaiKey).toBe('');
       expect(s.elevenlabsKey).toBe('');
+      expect(s.openrouterKey).toBe('');
       expect(s.corsProxy).toBe('https://corsbeater.wejick.workers.dev');
     });
 
@@ -42,23 +43,41 @@ describe('settings', () => {
     });
   });
 
-  describe('getProviderOptions', () => {
-    it('returns openai options', () => {
-      const opts = getProviderOptions('openai');
-      expect(opts.models.length).toBeGreaterThan(0);
-      expect(opts.voices.length).toBeGreaterThan(0);
-      expect(opts.models[0].value).toBe('tts-1');
+  describe('getModelsForProvider / getVoicesForModel', () => {
+    it('returns openai models and per-model voices', () => {
+      const models = getModelsForProvider('openai');
+      expect(models.length).toBeGreaterThan(0);
+      expect(models[0].value).toBe('tts-1');
+
+      const voices = getVoicesForModel('openai', 'tts-1');
+      expect(voices.length).toBeGreaterThan(0);
     });
 
-    it('returns elevenlabs options', () => {
-      const opts = getProviderOptions('elevenlabs');
-      expect(opts.models.length).toBeGreaterThan(0);
-      expect(opts.voices.length).toBeGreaterThan(0);
+    it('returns elevenlabs models and per-model voices', () => {
+      const models = getModelsForProvider('elevenlabs');
+      expect(models.length).toBeGreaterThan(0);
+
+      const voices = getVoicesForModel('elevenlabs', models[0].value);
+      expect(voices.length).toBeGreaterThan(0);
     });
 
-    it('falls back to openai for unknown provider', () => {
-      const opts = getProviderOptions('unknown');
-      expect(opts.models[0].value).toBe('tts-1');
+    it('returns openrouter models with distinct voice sets per model', () => {
+      const models = getModelsForProvider('openrouter');
+      expect(models.length).toBeGreaterThan(1);
+
+      const openaiModelVoices = getVoicesForModel('openrouter', 'openai/gpt-4o-mini-tts-2025-12-15');
+      const geminiModelVoices = getVoicesForModel('openrouter', 'google/gemini-3.1-flash-tts-preview');
+      expect(openaiModelVoices).not.toEqual(geminiModelVoices);
+    });
+
+    it('falls back to the openai provider for an unknown provider', () => {
+      const models = getModelsForProvider('unknown');
+      expect(models[0].value).toBe('tts-1');
+    });
+
+    it('falls back to the provider\'s first model when the model is unknown', () => {
+      const voices = getVoicesForModel('openai', 'nonexistent-model');
+      expect(voices).toEqual(getVoicesForModel('openai', 'tts-1'));
     });
   });
 
@@ -83,6 +102,29 @@ describe('settings', () => {
 
       expect(modelEl.selectedIndex).toBe(0);
       expect(voiceEl.selectedIndex).toBe(0);
+    });
+
+    it('populates voices for the selected model, not the whole provider', () => {
+      const modelEl = document.createElement('select');
+      const voiceEl = document.createElement('select');
+
+      populateModelVoiceSelectors('openrouter', modelEl, voiceEl, 'google/gemini-3.1-flash-tts-preview', 'Puck');
+
+      expect(modelEl.value).toBe('google/gemini-3.1-flash-tts-preview');
+      expect(voiceEl.value).toBe('Puck');
+      // "alloy" is an OpenAI-model voice, not a Gemini-model voice
+      expect([...voiceEl.options].some(o => o.value === 'alloy')).toBe(false);
+    });
+  });
+
+  describe('populateVoiceSelector', () => {
+    it('repopulates just the voice select for a given provider + model', () => {
+      const voiceEl = document.createElement('select');
+
+      populateVoiceSelector('openrouter', 'hexgrad/kokoro-82m', voiceEl, 'am_adam');
+
+      expect(voiceEl.value).toBe('am_adam');
+      expect([...voiceEl.options].some(o => o.value === 'alloy')).toBe(false);
     });
   });
 

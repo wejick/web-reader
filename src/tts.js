@@ -5,7 +5,7 @@
  *  - Split article text into sentence-boundary chunks (~1000 chars max)
  *  - Pre-fetch the next N chunks while the current one is playing to
  *    eliminate audible gaps between chunks (prefetch depth = 2)
- *  - Support OpenAI TTS and ElevenLabs as providers
+ *  - Support OpenAI TTS, ElevenLabs, and OpenRouter as providers
  *  - Revoke object URLs immediately after use to avoid memory leaks
  *  - Expose a simple play/pause/resume/stop API
  */
@@ -136,6 +136,8 @@ export async function fetchAudio(text, settings, signal) {
     return fetchOpenAI(text, settings, signal);
   } else if (settings.provider === 'elevenlabs') {
     return fetchElevenLabs(text, settings, signal);
+  } else if (settings.provider === 'openrouter') {
+    return fetchOpenRouter(text, settings, signal);
   }
   throw new Error(`Unknown TTS provider: ${settings.provider}`);
 }
@@ -162,6 +164,34 @@ async function fetchOpenAI(text, settings, signal) {
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err?.error?.message ?? `OpenAI TTS error: HTTP ${res.status}`);
+  }
+
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
+async function fetchOpenRouter(text, settings, signal) {
+  const key = settings.openrouterKey?.trim();
+  if (!key) throw new Error('OpenRouter API key is not set. Open Settings to add it.');
+
+  const res = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+    method: 'POST',
+    signal,
+    headers: {
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: settings.model || 'openai/gpt-4o-mini-tts-2025-12-15',
+      voice: settings.voice || 'alloy',
+      input: text,
+      response_format: 'mp3',
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message ?? `OpenRouter TTS error: HTTP ${res.status}`);
   }
 
   const blob = await res.blob();

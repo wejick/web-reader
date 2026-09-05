@@ -103,6 +103,10 @@ describe('fetchAudio', () => {
     await expect(fetchAudio('hello', { provider: 'elevenlabs', elevenlabsKey: '' })).rejects.toThrow('ElevenLabs API key is not set');
   });
 
+  it('throws when OpenRouter key is missing', async () => {
+    await expect(fetchAudio('hello', { provider: 'openrouter', openrouterKey: '' })).rejects.toThrow('OpenRouter API key is not set');
+  });
+
   it('calls OpenAI API and returns blob URL', async () => {
     const mockBlob = new Blob(['audio'], { type: 'audio/mpeg' });
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
@@ -145,6 +149,41 @@ describe('fetchAudio', () => {
       expect.stringContaining('elevenlabs.io'),
       expect.objectContaining({ method: 'POST' }),
     );
+  });
+
+  it('calls OpenRouter API and returns blob URL', async () => {
+    const mockBlob = new Blob(['audio'], { type: 'audio/mpeg' });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(mockBlob),
+    });
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+
+    const url = await fetchAudio('hello', {
+      provider: 'openrouter',
+      openrouterKey: 'sk-or-test',
+      model: 'openai/gpt-4o-mini-tts-2025-12-15',
+      voice: 'alloy',
+    });
+
+    expect(url).toBe('blob:mock');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'https://openrouter.ai/api/v1/audio/speech',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('throws on non-OK OpenRouter response', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: () => Promise.resolve({ error: { message: 'Invalid key' } }),
+    });
+
+    await expect(fetchAudio('hello', {
+      provider: 'openrouter',
+      openrouterKey: 'sk-or-bad',
+    })).rejects.toThrow('Invalid key');
   });
 
   it('throws on non-OK OpenAI response', async () => {

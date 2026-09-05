@@ -2,7 +2,7 @@
  * main.js — App entry point. Wires together settings, loader, reader, and TTS.
  */
 
-import { loadSettings, saveSettings, populateModelVoiceSelectors, fetchElevenLabsVoices, fetchElevenLabsModels } from './settings.js';
+import { loadSettings, saveSettings, populateModelVoiceSelectors, populateVoiceSelector, fetchElevenLabsVoices, fetchElevenLabsModels } from './settings.js';
 import { addToHistory, getHistory, searchHistory, clearHistory } from './history.js';
 import { fetchPage } from './loader.js';
 import { parseArticle } from './reader.js';
@@ -64,6 +64,7 @@ const modelSel      = $('tts-model');
 const voiceSel      = $('tts-voice');
 const openaiKeyIn   = $('openai-key');
 const elevenlabsKeyIn = $('elevenlabs-key');
+const openrouterKeyIn = $('openrouter-key');
 const corsProxyIn   = $('cors-proxy');
 
 // ---------------------------------------------------------------------------
@@ -637,6 +638,7 @@ function openSettings() {
   providerSel.value     = state.settings.provider;
   openaiKeyIn.value     = state.settings.openaiKey;
   elevenlabsKeyIn.value = state.settings.elevenlabsKey;
+  openrouterKeyIn.value = state.settings.openrouterKey;
   corsProxyIn.value     = state.settings.corsProxy;
 
   populateModelVoiceSelectors(
@@ -718,6 +720,7 @@ function handleSettingsSave() {
     voice:         voiceSel.value,
     openaiKey:     openaiKeyIn.value.trim(),
     elevenlabsKey: elevenlabsKeyIn.value.trim(),
+    openrouterKey: openrouterKeyIn.value.trim(),
     corsProxy:     corsProxyIn.value.trim(),
   };
 
@@ -813,6 +816,14 @@ providerSel.addEventListener('change', () => {
   }
 });
 
+// Model change → refresh voice dropdown to match the newly selected model.
+// ElevenLabs voice IDs are account-wide (not model-specific), so leave the
+// voice list alone there — otherwise it'd stomp on a live-fetched voice list.
+modelSel.addEventListener('change', () => {
+  if (providerSel.value === 'elevenlabs') return;
+  populateVoiceSelector(providerSel.value, modelSel.value, voiceSel, state.settings.voice);
+});
+
 // Close settings panel when clicking outside of it
 document.addEventListener('click', e => {
   if (
@@ -869,6 +880,7 @@ window.addEventListener('offline', () => showToast('You appear to be offline.', 
   providerSel.value     = state.settings.provider;
   openaiKeyIn.value     = state.settings.openaiKey;
   elevenlabsKeyIn.value = state.settings.elevenlabsKey;
+  openrouterKeyIn.value = state.settings.openrouterKey;
   corsProxyIn.value     = state.settings.corsProxy;
 
   // Focus URL input
