@@ -174,6 +174,13 @@ async function fetchOpenRouter(text, settings, signal) {
   const key = settings.openrouterKey?.trim();
   if (!key) throw new Error('OpenRouter API key is not set. Open Settings to add it.');
 
+  const model = settings.model || 'openai/gpt-4o-mini-tts-2025-12-15';
+  // Gemini TTS only outputs raw PCM on OpenRouter — requesting mp3 fails
+  // with an "unsupported format" error, so use pcm and wrap it in a WAV
+  // container ourselves so the <audio> element can play it back.
+  const isPcmOnly = model.startsWith('google/');
+  const responseFormat = isPcmOnly ? 'pcm' : 'mp3';
+
   const res = await fetch('https://openrouter.ai/api/v1/audio/speech', {
     method: 'POST',
     signal,
@@ -182,10 +189,10 @@ async function fetchOpenRouter(text, settings, signal) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: settings.model || 'openai/gpt-4o-mini-tts-2025-12-15',
+      model,
       voice: settings.voice || 'alloy',
       input: text,
-      response_format: 'mp3',
+      response_format: responseFormat,
     }),
   });
 
@@ -194,8 +201,58 @@ async function fetchOpenRouter(text, settings, signal) {
     throw new Error(err?.error?.message ?? `OpenRouter TTS error: HTTP ${res.status}`);
   }
 
+  if (isPcmOnly) {
+    const pcmBuffer = await res.arrayBuffer();
+    const { sampleRate, numChannels } = parsePcmContentType(res.headers?.get?.('content-type'));
+    const blob = pcmToWavBlob(pcmBuffer, sampleRate, numChannels);
+    return URL.createObjectURL(blob);
+  }
+
   const blob = await res.blob();
   return URL.createObjectURL(blob);
+}
+
+/**
+ * Parse sample rate and channel count from a `Content-Type` header like
+ * `audio/pcm;rate=24000;channels=1`. Falls back to Gemini's documented
+ * defaults (24 kHz mono) when the header is missing or unparseable.
+ */
+function parsePcmContentType(contentType) {
+  const rateMatch = contentType?.match(/rate=(\d+)/);
+  const channelsMatch = contentType?.match(/channels=(\d+)/);
+  return {
+    sampleRate: rateMatch ? parseInt(rateMatch[1], 10) : 24000,
+    numChannels: channelsMatch ? parseInt(channelsMatch[1], 10) : 1,
+  };
+}
+
+/** Wrap raw 16-bit PCM samples in a WAV container so browsers can play them. */
+function pcmToWavBlob(pcmBuffer, sampleRate, numChannels, bitsPerSample = 16) {
+  const blockAlign = numChannels * (bitsPerSample / 8);
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = pcmBuffer.byteLength;
+
+  const header = new ArrayBuffer(44);
+  const view = new DataView(header);
+  const writeString = (offset, str) => {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  };
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true); // fmt chunk size
+  view.setUint16(20, 1, true);  // audio format: PCM
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeString(36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  return new Blob([header, pcmBuffer], { type: 'audio/wav' });
 }
 
 async function fetchElevenLabs(text, settings, signal) {
