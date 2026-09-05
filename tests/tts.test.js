@@ -163,7 +163,7 @@ describe('fetchAudio', () => {
       provider: 'openrouter',
       openrouterKey: 'sk-or-test',
       model: 'deepgram/flux-tts:free',
-      voice: 'asteria',
+      voice: 'flux-alexis-en',
     });
 
     expect(url).toBe('blob:mock');
