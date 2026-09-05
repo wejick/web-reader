@@ -173,6 +173,33 @@ describe('fetchAudio', () => {
     );
   });
 
+  it('requests pcm (not mp3) for OpenRouter Gemini models and wraps the result in a WAV blob', async () => {
+    const pcmBytes = new Uint8Array([1, 2, 3, 4]);
+    let capturedBlob;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(pcmBytes.buffer),
+      headers: { get: () => 'audio/pcm;rate=24000;channels=1' },
+    });
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
+      capturedBlob = blob;
+      return 'blob:mock';
+    });
+
+    const url = await fetchAudio('hello', {
+      provider: 'openrouter',
+      openrouterKey: 'sk-or-test',
+      model: 'google/gemini-3.1-flash-tts-preview',
+      voice: 'Zephyr',
+    });
+
+    expect(url).toBe('blob:mock');
+    const [, options] = globalThis.fetch.mock.calls[0];
+    expect(JSON.parse(options.body).response_format).toBe('pcm');
+    expect(capturedBlob.type).toBe('audio/wav');
+    expect(capturedBlob.size).toBe(44 + pcmBytes.byteLength); // WAV header + PCM data
+  });
+
   it('throws on non-OK OpenRouter response', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
