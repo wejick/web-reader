@@ -86,6 +86,13 @@ const FLUX_TTS_VOICES = [
   { value: 'flux-wes-en',      label: 'Wes' },
 ];
 
+// Fish Audio identifies voices by opaque IDs from its voice library rather
+// than a fixed enum; this is the only one OpenRouter's docs give an example
+// for, so it's the sole option until more are confirmed.
+const FISH_AUDIO_VOICES = [
+  { value: 'b347db033a6549378b48d00acb0d06cd', label: 'Default (documented example voice)' },
+];
+
 const KOKORO_VOICES = [
   { value: 'af_heart',  label: 'Heart (US female, default)' },
   { value: 'af_bella',  label: 'Bella (US female)' },
@@ -116,6 +123,7 @@ const PROVIDER_MODELS = {
     { value: 'deepgram/flux-tts:free',              label: 'Flux TTS (Deepgram, free)',       voices: FLUX_TTS_VOICES },
     { value: 'google/gemini-3.1-flash-tts-preview', label: 'Gemini 3.1 Flash TTS (Google)',   voices: GEMINI_TTS_VOICES },
     { value: 'hexgrad/kokoro-82m',                  label: 'Kokoro 82M (free, open-weight)',  voices: KOKORO_VOICES },
+    { value: 'fish-audio/s2.1-pro-free:free',       label: 'S2.1 Pro (Fish Audio, free)',     voices: FISH_AUDIO_VOICES },
   ],
 };
 
