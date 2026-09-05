@@ -174,7 +174,7 @@ async function fetchOpenRouter(text, settings, signal) {
   const key = settings.openrouterKey?.trim();
   if (!key) throw new Error('OpenRouter API key is not set. Open Settings to add it.');
 
-  const model = settings.model || 'openai/gpt-4o-mini-tts-2025-12-15';
+  const model = settings.model || 'deepgram/flux-tts:free';
   // Gemini TTS only outputs raw PCM on OpenRouter — requesting mp3 fails
   // with an "unsupported format" error, so use pcm and wrap it in a WAV
   // container ourselves so the <audio> element can play it back.

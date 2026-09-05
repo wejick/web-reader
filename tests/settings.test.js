@@ -65,9 +65,9 @@ describe('settings', () => {
       const models = getModelsForProvider('openrouter');
       expect(models.length).toBeGreaterThan(1);
 
-      const openaiModelVoices = getVoicesForModel('openrouter', 'openai/gpt-4o-mini-tts-2025-12-15');
+      const fluxModelVoices = getVoicesForModel('openrouter', 'deepgram/flux-tts:free');
       const geminiModelVoices = getVoicesForModel('openrouter', 'google/gemini-3.1-flash-tts-preview');
-      expect(openaiModelVoices).not.toEqual(geminiModelVoices);
+      expect(fluxModelVoices).not.toEqual(geminiModelVoices);
     });
 
     it('falls back to the openai provider for an unknown provider', () => {

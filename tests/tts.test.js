@@ -162,8 +162,8 @@ describe('fetchAudio', () => {
     const url = await fetchAudio('hello', {
       provider: 'openrouter',
       openrouterKey: 'sk-or-test',
-      model: 'openai/gpt-4o-mini-tts-2025-12-15',
-      voice: 'alloy',
+      model: 'deepgram/flux-tts:free',
+      voice: 'asteria',
     });
 
     expect(url).toBe('blob:mock');

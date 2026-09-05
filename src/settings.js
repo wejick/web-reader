@@ -47,6 +47,17 @@ const GEMINI_TTS_VOICES = [
   { value: 'Sulafat',  label: 'Sulafat (warm)' },
 ];
 
+const FLUX_TTS_VOICES = [
+  { value: 'asteria', label: 'Asteria (US female)' },
+  { value: 'luna',    label: 'Luna (US female)' },
+  { value: 'stella',  label: 'Stella (US female)' },
+  { value: 'athena',  label: 'Athena (UK female)' },
+  { value: 'orion',   label: 'Orion (US male)' },
+  { value: 'arcas',   label: 'Arcas (US male)' },
+  { value: 'perseus', label: 'Perseus (US male)' },
+  { value: 'zeus',    label: 'Zeus (US male)' },
+];
+
 const KOKORO_VOICES = [
   { value: 'af_heart',  label: 'Heart (US female, default)' },
   { value: 'af_bella',  label: 'Bella (US female)' },
@@ -74,7 +85,7 @@ const PROVIDER_MODELS = {
     { value: 'eleven_flash_v2_5',      label: 'Flash v2.5 (fast, free tier)', voices: ELEVENLABS_VOICES },
   ],
   openrouter: [
-    { value: 'openai/gpt-4o-mini-tts-2025-12-15',  label: 'GPT-4o Mini TTS (OpenAI)',        voices: OPENAI_VOICES },
+    { value: 'deepgram/flux-tts:free',              label: 'Flux TTS (Deepgram, free)',       voices: FLUX_TTS_VOICES },
     { value: 'google/gemini-3.1-flash-tts-preview', label: 'Gemini 3.1 Flash TTS (Google)',   voices: GEMINI_TTS_VOICES },
     { value: 'hexgrad/kokoro-82m',                  label: 'Kokoro 82M (free, open-weight)',  voices: KOKORO_VOICES },
   ],
