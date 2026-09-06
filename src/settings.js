@@ -35,16 +35,82 @@ const ELEVENLABS_VOICES = [
 ];
 
 const GEMINI_TTS_VOICES = [
-  { value: 'Zephyr',   label: 'Zephyr (bright)' },
-  { value: 'Puck',     label: 'Puck (upbeat)' },
-  { value: 'Charon',   label: 'Charon (informative)' },
-  { value: 'Kore',     label: 'Kore (firm)' },
-  { value: 'Fenrir',   label: 'Fenrir (excitable)' },
-  { value: 'Leda',     label: 'Leda (youthful)' },
-  { value: 'Orus',     label: 'Orus (firm)' },
-  { value: 'Aoede',    label: 'Aoede (breezy)' },
-  { value: 'Autonoe',  label: 'Autonoe (bright)' },
-  { value: 'Sulafat',  label: 'Sulafat (warm)' },
+  { value: 'Zephyr',         label: 'Zephyr (bright)' },
+  { value: 'Puck',           label: 'Puck (upbeat)' },
+  { value: 'Charon',         label: 'Charon (informative)' },
+  { value: 'Kore',           label: 'Kore (firm)' },
+  { value: 'Fenrir',         label: 'Fenrir (excitable)' },
+  { value: 'Leda',           label: 'Leda (youthful)' },
+  { value: 'Orus',           label: 'Orus (firm)' },
+  { value: 'Aoede',          label: 'Aoede (breezy)' },
+  { value: 'Callirrhoe',     label: 'Callirrhoe (easy-going)' },
+  { value: 'Autonoe',        label: 'Autonoe (bright)' },
+  { value: 'Enceladus',      label: 'Enceladus (breathy)' },
+  { value: 'Iapetus',        label: 'Iapetus (clear)' },
+  { value: 'Umbriel',        label: 'Umbriel (easy-going)' },
+  { value: 'Algieba',        label: 'Algieba (smooth)' },
+  { value: 'Despina',        label: 'Despina (smooth)' },
+  { value: 'Erinome',        label: 'Erinome (clear)' },
+  { value: 'Algenib',        label: 'Algenib (gravelly)' },
+  { value: 'Rasalgethi',     label: 'Rasalgethi (informative)' },
+  { value: 'Laomedeia',      label: 'Laomedeia (upbeat)' },
+  { value: 'Achernar',       label: 'Achernar (soft)' },
+  { value: 'Alnilam',        label: 'Alnilam (firm)' },
+  { value: 'Schedar',        label: 'Schedar (even)' },
+  { value: 'Gacrux',         label: 'Gacrux (mature)' },
+  { value: 'Pulcherrima',    label: 'Pulcherrima (forward)' },
+  { value: 'Achird',         label: 'Achird (friendly)' },
+  { value: 'Zubenelgenubi',  label: 'Zubenelgenubi (casual)' },
+  { value: 'Vindemiatrix',   label: 'Vindemiatrix (gentle)' },
+  { value: 'Sadachbia',      label: 'Sadachbia (lively)' },
+  { value: 'Sadaltager',     label: 'Sadaltager (knowledgeable)' },
+  { value: 'Sulafat',        label: 'Sulafat (warm)' },
+];
+
+const FLUX_TTS_VOICES = [
+  { value: 'flux-alexis-en',   label: 'Alexis' },
+  { value: 'flux-bree-en',     label: 'Bree' },
+  { value: 'flux-brittany-en', label: 'Brittany' },
+  { value: 'flux-brooke-en',   label: 'Brooke' },
+  { value: 'flux-bruce-en',    label: 'Bruce' },
+  { value: 'flux-cliff-en',    label: 'Cliff' },
+  { value: 'flux-cole-en',     label: 'Cole' },
+  { value: 'flux-colin-en',    label: 'Colin' },
+  { value: 'flux-conor-en',    label: 'Conor' },
+  { value: 'flux-donovan-en',  label: 'Donovan' },
+  { value: 'flux-drew-en',     label: 'Drew' },
+  { value: 'flux-elise-en',    label: 'Elise' },
+  { value: 'flux-gemma-en',    label: 'Gemma' },
+  { value: 'flux-haley-en',    label: 'Haley' },
+  { value: 'flux-hannah-en',   label: 'Hannah' },
+  { value: 'flux-heather-en',  label: 'Heather' },
+  { value: 'flux-jack-en',     label: 'Jack' },
+  { value: 'flux-kai-en',      label: 'Kai' },
+  { value: 'flux-kelsey-en',   label: 'Kelsey' },
+  { value: 'flux-kit-en',      label: 'Kit' },
+  { value: 'flux-maeve-en',    label: 'Maeve' },
+  { value: 'flux-marcelo-en',  label: 'Marcelo' },
+  { value: 'flux-marcus-en',   label: 'Marcus' },
+  { value: 'flux-meena-en',    label: 'Meena' },
+  { value: 'flux-meghan-en',   label: 'Meghan' },
+  { value: 'flux-miles-en',    label: 'Miles' },
+  { value: 'flux-naveen-en',   label: 'Naveen' },
+  { value: 'flux-paige-en',    label: 'Paige' },
+  { value: 'flux-priya-en',    label: 'Priya' },
+  { value: 'flux-rufus-en',    label: 'Rufus' },
+  { value: 'flux-sean-en',     label: 'Sean' },
+  { value: 'flux-sharon-en',   label: 'Sharon' },
+  { value: 'flux-sienna-en',   label: 'Sienna' },
+  { value: 'flux-tanner-en',   label: 'Tanner' },
+  { value: 'flux-wade-en',     label: 'Wade' },
+  { value: 'flux-wes-en',      label: 'Wes' },
+];
+
+// Fish Audio identifies voices by opaque IDs from its voice library rather
+// than a fixed enum; this is the only one OpenRouter's docs give an example
+// for, so it's the sole option until more are confirmed.
+const FISH_AUDIO_VOICES = [
+  { value: 'b347db033a6549378b48d00acb0d06cd', label: 'Default (documented example voice)' },
 ];
 
 const KOKORO_VOICES = [
@@ -74,9 +140,10 @@ const PROVIDER_MODELS = {
     { value: 'eleven_flash_v2_5',      label: 'Flash v2.5 (fast, free tier)', voices: ELEVENLABS_VOICES },
   ],
   openrouter: [
-    { value: 'openai/gpt-4o-mini-tts-2025-12-15',  label: 'GPT-4o Mini TTS (OpenAI)',        voices: OPENAI_VOICES },
+    { value: 'deepgram/flux-tts:free',              label: 'Flux TTS (Deepgram, free)',       voices: FLUX_TTS_VOICES },
     { value: 'google/gemini-3.1-flash-tts-preview', label: 'Gemini 3.1 Flash TTS (Google)',   voices: GEMINI_TTS_VOICES },
     { value: 'hexgrad/kokoro-82m',                  label: 'Kokoro 82M (free, open-weight)',  voices: KOKORO_VOICES },
+    { value: 'fish-audio/s2.1-pro-free:free',       label: 'S2.1 Pro (Fish Audio, free)',     voices: FISH_AUDIO_VOICES },
   ],
 };
 
@@ -136,12 +203,21 @@ export function getVoicesForModel(provider, model) {
  * @returns {Promise<Array<{value: string, label: string}>>}
  */
 export async function fetchElevenLabsVoices(apiKey) {
-  const res = await fetch('https://api.elevenlabs.io/v1/voices?show_legacy=true', {
-    headers: { 'xi-api-key': apiKey },
-  });
-  if (!res.ok) throw new Error(`ElevenLabs API error: HTTP ${res.status}`);
-  const data = await res.json();
-  return data.voices
+  const voices = [];
+  let pageToken;
+
+  do {
+    const url = `https://api.elevenlabs.io/v2/voices?show_legacy=true&page_size=100${
+      pageToken ? `&next_page_token=${encodeURIComponent(pageToken)}` : ''
+    }`;
+    const res = await fetch(url, { headers: { 'xi-api-key': apiKey } });
+    if (!res.ok) throw new Error(`ElevenLabs API error: HTTP ${res.status}`);
+    const data = await res.json();
+    voices.push(...data.voices);
+    pageToken = data.has_more ? data.next_page_token : undefined;
+  } while (pageToken);
+
+  return voices
     .sort((a, b) => a.name.localeCompare(b.name))
     .map(v => ({ value: v.voice_id, label: v.name }));
 }
