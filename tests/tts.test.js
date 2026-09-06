@@ -361,4 +361,87 @@ describe('TTSQueue', () => {
     expect(queue.isPaused).toBe(false);
     expect(audioEl.play).toHaveBeenCalled();
   });
+
+  // ---- Prefetch error handling --------------------------------------------
+
+  function makeDispatchAudio() {
+    const listeners = new Map();
+    return {
+      src: '',
+      play: vi.fn(async () => {}),
+      pause: vi.fn(),
+      addEventListener(type, fn) {
+        if (!listeners.has(type)) listeners.set(type, new Set());
+        listeners.get(type).add(fn);
+      },
+      removeEventListener(type, fn) {
+        listeners.get(type)?.delete(fn);
+      },
+      dispatch(type) {
+        for (const fn of [...(listeners.get(type) ?? [])]) fn();
+      },
+    };
+  }
+
+  const flush = () => new Promise(r => setTimeout(r, 0));
+
+  it('retries a failed chunk on the next encounter instead of failing forever from the prefetch cache', async () => {
+    const mockBlob = new Blob(['audio'], { type: 'audio/mpeg' });
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, opts) => {
+      if (JSON.parse(opts.body).input === 'two.') {
+        return { ok: false, status: 429, json: async () => ({ error: { message: 'rate limited' } }) };
+      }
+      return { ok: true, blob: async () => mockBlob };
+    });
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+
+    const audio = makeDispatchAudio();
+    const errors = [];
+    const queue = new TTSQueue(audio, ['one.', 'two.', 'three.'], { provider: 'openai', openaiKey: 'sk-test' }, { onError: e => errors.push(e) });
+
+    await queue.play(); // chunk 0 plays; prefetched chunk 1 fails
+    audio.dispatch('ended'); // advance -> chunk 1 retried, fails, skip to 2
+    await flush();
+    await flush();
+
+    expect(errors.filter(e => e.includes('Chunk 2 failed')).length).toBe(1);
+    expect(queue.currentIndex).toBe(2);
+
+    // Seeking back must hit the network again, not the cached rejection
+    queue.seekTo(1);
+    await flush();
+    await flush();
+
+    const fetchCount = globalThis.fetch.mock.calls.filter(
+      c => JSON.parse(c[1].body).input === 'two.',
+    ).length;
+    expect(fetchCount).toBe(3); // initial prefetch + advance retry + seek-back retry
+    expect(errors.filter(e => e.includes('Chunk 2 failed')).length).toBe(2);
+  });
+
+  it('stop() with an in-flight prefetch does not leave an unhandled rejection', async () => {
+    const rejectors = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      () => new Promise((resolve, reject) => { rejectors.push(reject); }),
+    );
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+
+    const unhandled = [];
+    const onUnhandled = reason => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+
+    const audio = makeDispatchAudio();
+    const queue = new TTSQueue(audio, ['one.', 'two.'], { provider: 'openai', openaiKey: 'sk-test' });
+    const played = queue.play(); // both fetches in flight; chunk 1 is prefetch-only
+    await flush();
+
+    queue.stop(); // aborts both; simulate the signal rejecting them
+    for (const reject of rejectors) reject(new DOMException('Aborted', 'AbortError'));
+    await flush();
+    await flush();
+    await played;
+
+    process.off('unhandledRejection', onUnhandled);
+    expect(unhandled).toEqual([]);
+  });
 });

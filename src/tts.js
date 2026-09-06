@@ -454,12 +454,25 @@ export class TTSQueue {
       this._chunks[index],
       this._settings,
       this._abortCtrl.signal,
-    ).then(url => {
-      this._urls.set(index, url);
-      return url;
-    });
+    ).then(
+      url => {
+        this._urls.set(index, url);
+        return url;
+      },
+      err => {
+        // Don't cache failures — drop the entry so the chunk is retried on
+        // the next encounter (e.g. seeking back), instead of failing forever
+        // from the cached rejection.
+        this._fetches.delete(index);
+        throw err;
+      },
+    );
 
     this._fetches.set(index, promise);
+    // Prefetch-only fetches are never awaited by _playChunk; swallow their
+    // rejection so an aborted or failed prefetch doesn't surface as an
+    // unhandled rejection. Awaiting consumers still see the error.
+    promise.catch(() => {});
   }
 
   /** Play the chunk at `index`, waiting for its fetch to complete first. */
