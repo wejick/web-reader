@@ -309,4 +309,56 @@ describe('TTSQueue', () => {
     expect(queue.totalChunks).toBe(3);
     expect(queue.currentIndex).toBe(0);
   });
+
+  function mockAudioFetch() {
+    const mockBlob = new Blob(['audio'], { type: 'audio/mpeg' });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(mockBlob),
+    });
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+  }
+
+  it('play(fromIndex) starts playback at the given chunk', async () => {
+    mockAudioFetch();
+    const chunks = ['one.', 'two.', 'three.'];
+    const onChunkStart = vi.fn();
+    const queue = new TTSQueue(audioEl, chunks, { provider: 'openai', openaiKey: 'sk-test' }, { onChunkStart });
+
+    await queue.play(2);
+
+    expect(onChunkStart).toHaveBeenCalledWith(2, 3);
+    expect(queue.currentIndex).toBe(2);
+    expect(audioEl.play).toHaveBeenCalled();
+    // Chunk 0 must not be fetched — only the requested chunk (no chunks left to prefetch)
+    const requestedTexts = globalThis.fetch.mock.calls.map(([, opts]) => JSON.parse(opts.body).input);
+    expect(requestedTexts).toEqual(['three.']);
+  });
+
+  it('play(fromIndex) clamps out-of-range indices', async () => {
+    mockAudioFetch();
+    const onChunkStart = vi.fn();
+    const queue = new TTSQueue(audioEl, ['a.', 'b.'], { provider: 'openai', openaiKey: 'sk-test' }, { onChunkStart });
+
+    await queue.play(99);
+
+    expect(onChunkStart).toHaveBeenCalledWith(1, 2);
+  });
+
+  it('play(fromIndex, { paused: true }) loads the chunk but waits for resume()', async () => {
+    mockAudioFetch();
+    const queue = new TTSQueue(audioEl, ['a.', 'b.', 'c.'], { provider: 'openai', openaiKey: 'sk-test' });
+
+    await queue.play(1, { paused: true });
+
+    expect(audioEl.src).toBe('blob:mock');
+    expect(queue.isPaused).toBe(true);
+    expect(queue.currentIndex).toBe(1);
+    expect(audioEl.play).not.toHaveBeenCalled();
+
+    queue.resume();
+
+    expect(queue.isPaused).toBe(false);
+    expect(audioEl.play).toHaveBeenCalled();
+  });
 });

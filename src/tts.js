@@ -351,23 +351,30 @@ export class TTSQueue {
 
   // ---- Public API ----------------------------------------------------------
 
-  /** Start playback from the beginning. */
-  async play() {
+  /**
+   * Start playback from `fromIndex` (clamped to the valid chunk range).
+   * Pass `{ paused: true }` to fetch and load the chunk without playing —
+   * a later resume() starts audible playback. Used to swap settings
+   * mid-playback without losing the listener's place.
+   */
+  async play(fromIndex = 0, { paused = false } = {}) {
     if (this._chunks.length === 0) {
       this._cbs.onError?.('No text chunks to play.');
       return;
     }
 
-    this._stopped = false;
-    this._paused  = false;
-    this._index   = 0;
+    const start = Math.min(Math.max(0, fromIndex), this._chunks.length - 1);
 
-    // Kick off prefetch for the first few chunks
-    for (let i = 0; i <= this._prefetchDepth && i < this._chunks.length; i++) {
+    this._stopped = false;
+    this._paused  = paused;
+    this._index   = start;
+
+    // Kick off prefetch from the starting chunk
+    for (let i = start; i <= start + this._prefetchDepth && i < this._chunks.length; i++) {
       this._prefetch(i);
     }
 
-    await this._playChunk(0);
+    await this._playChunk(start);
   }
 
   /** Pause playback (can be resumed). */

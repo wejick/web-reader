@@ -282,7 +282,7 @@ function seekChunk(index) {
   }
 }
 
-function startTTS(fromIndex = 0) {
+function startTTS(fromIndex = 0, { paused = false } = {}) {
   stopTTS();
   const audioEl = q('#tts-audio');
   ttsQueue = new TTSQueue(audioEl, ttsChunks, settings, {
@@ -290,7 +290,10 @@ function startTTS(fromIndex = 0) {
       currentIdx = i;
       setProgress(i, ttsChunks.length);
       highlightChunk(i);
-      q('#btn-play').innerHTML = '&#9646;&#9646;';
+      // Don't flip to the pause icon when the queue was started paused
+      if (!(ttsQueue && ttsQueue.isPaused)) {
+        q('#btn-play').innerHTML = '&#9646;&#9646;';
+      }
     },
     onProgress: (i, total) => setProgress(i, total),
     onEnd: () => {
@@ -302,12 +305,7 @@ function startTTS(fromIndex = 0) {
     onError: (msg) => showToast(msg),
   });
 
-  if (fromIndex === 0) {
-    ttsQueue.play();
-  } else {
-    // seekTo() works on a fresh queue and avoids wastefully fetching chunk 0
-    ttsQueue.seekTo(fromIndex);
-  }
+  ttsQueue.play(fromIndex, { paused });
 }
 
 function setProgress(index, total) {
@@ -439,6 +437,13 @@ async function handleSaveSettings() {
   settings = updated;
   closeSettings();
   showToast('Settings saved');
+
+  // If TTS is active, restart from the current chunk so the new settings
+  // take effect without losing the listener's place.
+  if (ttsQueue && !ttsQueue.isStopped) {
+    const wasPaused = ttsQueue.isPaused;
+    startTTS(currentIdx, { paused: wasPaused });
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

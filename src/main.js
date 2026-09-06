@@ -568,6 +568,32 @@ function setPlayState(playing) {
     : '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 }
 
+function createTTSQueue() {
+  return new TTSQueue(
+    audioEl,
+    state.ttsChunks,
+    state.settings,
+    {
+      onChunkStart(index) {
+        highlightChunk(index);
+      },
+      onProgress(index, total) {
+        updateProgress(index, total);
+      },
+      onEnd() {
+        setPlayState(false);
+        stopBtn.disabled = true;
+        updateProgress(state.ttsChunks.length, state.ttsChunks.length);
+        clearHighlight();
+        showToast('Finished reading.', 'success', 3000);
+      },
+      onError(msg) {
+        showToast(msg, 'error');
+      },
+    }
+  );
+}
+
 async function handlePlayPause() {
   // No article text — try to parse first
   if (!state.article && state.rawHtml) {
@@ -598,29 +624,7 @@ async function handlePlayPause() {
   // Start fresh
   stopTTS();
 
-  state.ttsQueue = new TTSQueue(
-    audioEl,
-    state.ttsChunks,
-    state.settings,
-    {
-      onChunkStart(index) {
-        highlightChunk(index);
-      },
-      onProgress(index, total) {
-        updateProgress(index, total);
-      },
-      onEnd() {
-        setPlayState(false);
-        stopBtn.disabled = true;
-        updateProgress(state.ttsChunks.length, state.ttsChunks.length);
-        clearHighlight();
-        showToast('Finished reading.', 'success', 3000);
-      },
-      onError(msg) {
-        showToast(msg, 'error');
-      },
-    }
-  );
+  state.ttsQueue = createTTSQueue();
 
   setPlayState(true);
   stopBtn.disabled = false;
@@ -728,10 +732,26 @@ function handleSettingsSave() {
   closeSettings();
   showToast('Settings saved.', 'success', 2500);
 
-  // If TTS was playing, stop it so it picks up new settings on next play
+  // If TTS is active, restart from the current chunk so the new settings
+  // take effect without losing the listener's place.
   if (state.ttsQueue && !state.ttsQueue.isStopped) {
+    const wasPaused   = state.ttsQueue.isPaused;
+    const resumeIndex = state.ttsQueue.currentIndex;
+
     stopTTS();
-    showToast('TTS stopped — settings updated. Press Play to restart.', 'info');
+
+    if (state.ttsChunks.length) {
+      state.ttsQueue = createTTSQueue();
+      stopBtn.disabled = false;
+      prevBtn.disabled = false;
+      nextBtn.disabled = false;
+      setPlayState(!wasPaused);
+      state.ttsQueue.play(resumeIndex, { paused: wasPaused });
+    }
+
+    if (!wasPaused) {
+      showToast('Settings updated — resuming from where you left off.', 'info', 3000);
+    }
   }
 }
 
