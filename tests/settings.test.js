@@ -142,9 +142,41 @@ describe('settings', () => {
       await fetchElevenLabsVoices('el-test');
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        'https://api.elevenlabs.io/v1/voices?show_legacy=true',
+        'https://api.elevenlabs.io/v2/voices?show_legacy=true&page_size=100',
         expect.objectContaining({ headers: { 'xi-api-key': 'el-test' } }),
       );
+    });
+
+    it('follows next_page_token until has_more is false', async () => {
+      vi.spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            voices: [{ voice_id: 'a', name: 'Amber' }],
+            has_more: true,
+            next_page_token: 'token-2',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            voices: [{ voice_id: 'b', name: 'Zara' }],
+            has_more: false,
+          }),
+        });
+
+      const voices = await fetchElevenLabsVoices('el-test');
+
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+      expect(globalThis.fetch).toHaveBeenNthCalledWith(
+        2,
+        'https://api.elevenlabs.io/v2/voices?show_legacy=true&page_size=100&next_page_token=token-2',
+        expect.objectContaining({ headers: { 'xi-api-key': 'el-test' } }),
+      );
+      expect(voices).toEqual([
+        { value: 'a', label: 'Amber' },
+        { value: 'b', label: 'Zara' },
+      ]);
     });
 
     it('returns an empty array for a free-tier account with no added voices', async () => {

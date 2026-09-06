@@ -203,12 +203,21 @@ export function getVoicesForModel(provider, model) {
  * @returns {Promise<Array<{value: string, label: string}>>}
  */
 export async function fetchElevenLabsVoices(apiKey) {
-  const res = await fetch('https://api.elevenlabs.io/v1/voices?show_legacy=true', {
-    headers: { 'xi-api-key': apiKey },
-  });
-  if (!res.ok) throw new Error(`ElevenLabs API error: HTTP ${res.status}`);
-  const data = await res.json();
-  return data.voices
+  const voices = [];
+  let pageToken;
+
+  do {
+    const url = `https://api.elevenlabs.io/v2/voices?show_legacy=true&page_size=100${
+      pageToken ? `&next_page_token=${encodeURIComponent(pageToken)}` : ''
+    }`;
+    const res = await fetch(url, { headers: { 'xi-api-key': apiKey } });
+    if (!res.ok) throw new Error(`ElevenLabs API error: HTTP ${res.status}`);
+    const data = await res.json();
+    voices.push(...data.voices);
+    pageToken = data.has_more ? data.next_page_token : undefined;
+  } while (pageToken);
+
+  return voices
     .sort((a, b) => a.name.localeCompare(b.name))
     .map(v => ({ value: v.voice_id, label: v.name }));
 }
